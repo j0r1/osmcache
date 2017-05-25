@@ -5,7 +5,9 @@ var g_lastCenter = null;
 var g_lastLonLat = null;
 var g_earthSphere = new ol.Sphere(6378137);
 var g_lineString = new ol.geom.LineString([]);
+var g_curPoint = new ol.geom.Point([0,0]);
 var g_pathFeature = new ol.Feature({ geometry: g_lineString });
+var g_pointFeature = new ol.Feature({ geometry: g_curPoint });
 
 function positionCallback(pos)
 {
@@ -14,12 +16,14 @@ function positionCallback(pos)
 
     var newLonLat = [ pos.coords.longitude, pos.coords.latitude ];
 	var newCenter = ol.proj.fromLonLat(newLonLat, g_view.getProjection().getCode());
-    g_view.setCenter(newCenter);
+
+    g_curPoint.setCoordinates(newCenter);
 
     if (g_lastLonLat != null)
     {
         var dist = g_earthSphere.haversineDistance(g_lastLonLat, newLonLat);
-        if (dist > 5.0) // try to avoid GPS coord jumps to modifiy the orientation
+        //console.log(dist);
+        if (dist > 10.0) // try to avoid GPS coord jumps to modifiy the orientation
         {
             var dx = newCenter[0] - g_lastCenter[0];
             var dy = newCenter[1] - g_lastCenter[1];
@@ -44,7 +48,15 @@ function positionCallback(pos)
                 //console.log(angle*180.0/Math.PI);
             }
 
-            g_view.setRotation(3.0*Math.PI*0.5+angle);
+            var rotAng = 3.0*Math.PI*0.5+angle;
+            while (rotAng > Math.PI)
+                rotAng -= 2.0*Math.PI;
+            while (rotAng < -Math.PI)
+                rotAng += 2.0*Math.PI;
+
+            //console.log("rotAng = " + rotAng + " current = " + g_view.getRotation());
+            g_view.animate({ rotation: rotAng, center: newCenter });
+            g_lineString.appendCoordinate(newCenter);
 
             g_lastLonLat = newLonLat;
             g_lastCenter = newCenter;
@@ -54,9 +66,10 @@ function positionCallback(pos)
     {
         g_lastLonLat = newLonLat;
         g_lastCenter = newCenter;
+        g_view.setCenter(newCenter);
+        g_lineString.appendCoordinate(newCenter);
     }
 
-    g_lineString.appendCoordinate(newCenter);
 }
 
 function positionError(err)
@@ -68,11 +81,13 @@ function main()
 {
     g_map = new ol.Map({
         layers: [ new ol.layer.Tile({ source: new ol.source.OSM() }), 
-                  new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature] }) })
+                  new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature ] }) })
         ],
         target: 'map',
         view: g_view,
         renderer: 'webgl',
+        loadTilesWhileAnimating: true,
+        preload: 4,
     });
 
     if (!("geolocation" in navigator))
@@ -96,8 +111,9 @@ function main()
 
         return function()
         {
-            t += 0.005;
-            return [ center[0]+radius*Math.cos(t), center[1]+radius*Math.sin(t) ];
+            t += 0.0005;
+            return [ center[0]+radius*Math.cos(t)*((Math.random()-0.5)/100.0+1.0), 
+                     center[1]+radius*Math.sin(t)*((Math.random()-0.5)/100.0+1.0) ];
         }
     }
     var newPosFunction = f();

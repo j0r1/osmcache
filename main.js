@@ -102,7 +102,9 @@ function positionCallback(pos)
 
 function positionError(err)
 {
-    console.warn('ERROR(' + err.code + '): ' + err.message);
+    var msg = 'ERROR(' + err.code + '): ' + err.message;
+    console.warn(msg);
+    alert(msg);
 }
 
 function main()

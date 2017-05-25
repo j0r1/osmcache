@@ -3,11 +3,38 @@ var g_view = new ol.View({ center: [0, 0], zoom: 17 });
 var g_map = null;
 var g_lastCenter = null;
 var g_lastLonLat = null;
+var g_lastRotAng = null;
 var g_earthSphere = new ol.Sphere(6378137);
 var g_lineString = new ol.geom.LineString([]);
 var g_curPoint = new ol.geom.Point([0,0]);
 var g_pathFeature = new ol.Feature({ geometry: g_lineString });
 var g_pointFeature = new ol.Feature({ geometry: g_curPoint });
+
+var g_followEnabled = true;
+
+function setTargetCoords()
+{
+    // TODO
+}
+
+function disableFollow()
+{
+    g_followEnabled = false;
+}
+
+function enableFollow()
+{
+    g_followEnabled = true;
+
+    var obj = { }
+    
+    if (g_lastCenter)
+        obj.center = g_lastCenter;
+    if (g_lastRotAng)
+        obj.rotation = g_lastRotAng;
+
+    g_view.animate(obj);
+}
 
 function positionCallback(pos)
 {
@@ -54,10 +81,11 @@ function positionCallback(pos)
             while (rotAng < -Math.PI)
                 rotAng += 2.0*Math.PI;
 
-            //console.log("rotAng = " + rotAng + " current = " + g_view.getRotation());
-            g_view.animate({ rotation: rotAng, center: newCenter });
+            if (g_followEnabled)
+                g_view.animate({ rotation: rotAng, center: newCenter });
             g_lineString.appendCoordinate(newCenter);
 
+            g_lastRotAng = rotAng;
             g_lastLonLat = newLonLat;
             g_lastCenter = newCenter;
         }
@@ -90,6 +118,8 @@ function main()
         preload: 4,
     });
 
+    g_map.on('pointerdrag', disableFollow);
+
     if (!("geolocation" in navigator))
     {
         alert("Geolocation API not present");
@@ -101,7 +131,6 @@ function main()
         timeout: 1000,
         maximumAge: 0
     };
-    //navigator.geolocation.watchPosition(positionCallback, positionError, options);
     
     var f = function()
     {
@@ -116,18 +145,21 @@ function main()
                      center[1]+radius*Math.sin(t)*((Math.random()-0.5)/100.0+1.0) ];
         }
     }
-    var newPosFunction = f();
-    setInterval(function() {
-        var p = newPosFunction();
-        var obj = { coords: { longitude: p[0], latitude: p[1] } };
-        //console.log("Fake pos: " + JSON.stringify(obj));
-        positionCallback(obj);
-    },500);
 
-    /*
-    setInterval(function() {
-        console.log(g_view.getCenter());
-    }, 1000);*/
+    if (location.hostname == "localhost")
+    {
+        var newPosFunction = f();
+        setInterval(function() {
+            var p = newPosFunction();
+            var obj = { coords: { longitude: p[0], latitude: p[1] } };
+            //console.log("Fake pos: " + JSON.stringify(obj));
+            positionCallback(obj);
+        },500);
+    }
+    else
+    {
+        navigator.geolocation.watchPosition(positionCallback, positionError, options);
+    }
 }
 
 $(document).ready(main);

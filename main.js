@@ -1,8 +1,11 @@
+vex.defaultOptions.className = 'vex-theme-wireframe';
+
 var g_noSleep = new NoSleep();
 var g_wakeLockEnabled = false;
 
 var g_view = new ol.View({ center: [0, 0], zoom: 17 });
 var g_map = null;
+var g_lastImmediateLonLat = null;
 var g_lastCenter = null;
 var g_lastLonLat = null;
 var g_lastRotAng = null;
@@ -13,7 +16,7 @@ var g_pathFeature = new ol.Feature({ geometry: g_lineString });
 var g_pointFeature = new ol.Feature({ geometry: g_curPoint });
 var g_trailLine = new ol.geom.LineString([], []);
 var g_trailFeature = new ol.Feature({ geometry: g_trailLine });
-var g_trailEnd = [ 0, 0];
+var g_trailEnd = null;
 
 var g_followEnabled = true;
 
@@ -38,8 +41,79 @@ g_pathFeature.setStyle(new ol.style.Style({
 
 function setTargetCoords()
 {
-    g_trailEnd = null;
-    g_trailLine.setCoordinates([]);
+    function setCoords(lonLat)
+    {
+        $("#inp_lat").val("" + lonLat[1]);
+        $("#inp_lon").val("" + lonLat[0]);
+    }
+
+    function parseLatLon(txt)
+    {
+        var x = parseFloat(txt);
+        if (x != x)
+            return undefined;
+        return x;
+    }
+
+    vex.dialog.open(
+    {
+        input: [ 
+            '<h3>Select target coordinates</h3>',
+            'Latitude: <input type="text" id="inp_lat"><br>',
+            'Longitude: <input type="text" id="inp_lon"><br>',
+        ].join("\n"),
+        buttons: [
+        {
+            text: 'OK',
+            type: 'submit',
+            className: 'vex-dialog-button-primary'
+        },
+        {
+            text: 'Cancel',
+            type: 'button',
+            className: 'vex-dialog-button-secondary',
+            click: function() 
+            {
+              this.value = false;
+              return this.close();
+            }
+        },
+        {
+            text: 'Cur',
+            type: 'button',
+            className: 'vex-dialog-button-secondary',
+            click: function()
+            {
+                setCoords(g_lastImmediateLonLat);
+            }
+        }],
+        afterOpen: function()
+        {
+            if (g_trailEnd)
+                setCoords(g_trailEnd);
+            else
+                setCoords(g_lastImmediateLonLat);
+        },
+        callback: function(data)
+        {
+            if (data === false)
+                return;
+
+            var lat = parseLatLon($("#inp_lat").val());
+            var lon = parseLatLon($("#inp_lon").val());
+
+            console.log(lat);
+            console.log(lon);
+
+            if (lat === undefined && lon === undefined)
+                g_trailEnd = null;
+            else if (lat !== undefined && lon !== undefined)
+                g_trailEnd = [ lon, lat ];
+
+            if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
+                setTimeout(function() { positionCallback({ coords: { longitude: g_lastImmediateLonLat[0], latitude: g_lastImmediateLonLat[1] } }); }, 0);
+        }
+    });
 }
 
 function disableFollow()
@@ -68,13 +142,22 @@ function positionCallback(pos)
 
     var newLonLat = [ pos.coords.longitude, pos.coords.latitude ];
 	var newCenter = ol.proj.fromLonLat(newLonLat, g_view.getProjection().getCode());
+    g_lastImmediateLonLat = newLonLat;
 
     g_curPoint.setCenter(newCenter);
     if (g_trailEnd)
-        g_trailLine.setCoordinates([newCenter, g_trailEnd]);
+    {
+        g_trailLine.setCoordinates([newCenter, ol.proj.fromLonLat(g_trailEnd, g_view.getProjection().getCode())]);
+        var dist = g_earthSphere.haversineDistance(newLonLat, g_trailEnd);
+        dist = Math.round(dist);
+        $("#spndist").text("" + dist + " meter");
+        $("#spndistwrap").show();
+    }
     else
+    {
         g_trailLine.setCoordinates([]);
-
+        $("#spndistwrap").hide();
+    }
     if (g_lastLonLat != null)
     {
         var dist = g_earthSphere.haversineDistance(g_lastLonLat, newLonLat);
@@ -138,7 +221,6 @@ function positionError(err)
 
 function main()
 {
-    
     g_map = new ol.Map({
         layers: [ new ol.layer.Tile({ source: new ol.source.OSM() }), 
                   new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
@@ -195,7 +277,7 @@ function main()
     }
 }
 
-function toggleWakeLock2()
+function toggleWakeLock()
 {
     var elem = document.getElementById("btnwake");
     elem.innerText = "Testing...";

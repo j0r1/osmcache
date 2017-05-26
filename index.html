@@ -4,6 +4,9 @@
         <link rel="stylesheet" href="https://openlayers.org/en/v4.1.1/css/ol.css" type="text/css">
         <script src="https://openlayers.org/en/v4.1.1/build/ol.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <link rel="stylesheet" href="vex.css">
+        <link rel="stylesheet" href="vex-theme-wireframe.css">
+        <script src="vex.js"></script>
         <script src="NoSleep.js"></script>
         <script src="main.js"></script>
         <style>
@@ -18,6 +21,9 @@
             bottom: 0px;
             left: 0px;
         }
+        .dlg {
+            width: 80%;
+        }
         </style>
     </head>
     <body>
@@ -25,7 +31,8 @@
         <div id="controls">
             <button onclick="setTargetCoords()">Set target coords</button>
             <button onclick="enableFollow()">Enable following</button>
-            <button id="btnwake" onclick="toggleWakeLock2()">Enable wake lock2</button>
+            <button id="btnwake" onclick="toggleWakeLock()">Enable wake lock</button>
+            <span id="spndistwrap" style="display: none">Distance to target: <span id="spndist"></span></span>
         </div>
     </body>
 </html>

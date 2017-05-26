@@ -41,17 +41,60 @@ g_pathFeature.setStyle(new ol.style.Style({
 
 function setTargetCoords()
 {
+    function fillZeros(x, num)
+    {
+        x = ""+x;
+        while (x.length < num)
+            x = "0" + x;
+        return x;
+    }
+
+    function getCoordText(x)
+    {
+        var signTxt = "";
+        if (x < 0)
+        {
+            signTxt = "-";
+            x = -x;
+        }
+        
+        var deg = Math.floor(x);
+        var minFloat = (x-deg)*60.0;
+        var min = Math.floor(minFloat);
+        var thousands = Math.round((minFloat - min)*1000.0);
+
+        var s = signTxt + deg + " " + fillZeros(min,2) + "." + fillZeros(thousands, 3);
+        return s;
+    }
+
     function setCoords(lonLat)
     {
-        $("#inp_lat").val("" + lonLat[1]);
-        $("#inp_lon").val("" + lonLat[0]);
+        var lat = lonLat[1];
+        var lon = lonLat[0];
+        $("#inp_lat").val(getCoordText(lat));
+        $("#inp_lon").val(getCoordText(lon));
     }
 
     function parseLatLon(txt)
     {
-        var x = parseFloat(txt);
+        txt = $.trim(txt);
+        var parts = txt.split(" ");
+        console.log(parts);
+
+        if (parts.length > 3)
+            return undefined;
+        
+        var x = 0;
+        var i = parts.length-1;
+        while (i >= 0)
+        {
+            x /= 60.0;
+            x += parseFloat(parts[i]);
+            i--;
+        }
         if (x != x)
             return undefined;
+
         return x;
     }
 

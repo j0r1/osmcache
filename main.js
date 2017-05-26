@@ -6,15 +6,38 @@ var g_lastLonLat = null;
 var g_lastRotAng = null;
 var g_earthSphere = new ol.Sphere(6378137);
 var g_lineString = new ol.geom.LineString([]);
-var g_curPoint = new ol.geom.Point([0,0]);
+var g_curPoint = new ol.geom.Circle([0,0],10);
 var g_pathFeature = new ol.Feature({ geometry: g_lineString });
 var g_pointFeature = new ol.Feature({ geometry: g_curPoint });
+var g_trailLine = new ol.geom.LineString([], []);
+var g_trailFeature = new ol.Feature({ geometry: g_trailLine });
+var g_trailEnd = [ 0, 0];
 
 var g_followEnabled = true;
 
+g_trailFeature.setStyle(new ol.style.Style({
+    stroke: new ol.style.Stroke({
+        color: "#0000AA",
+        width: 4,
+    }),
+}));
+g_pointFeature.setStyle(new ol.style.Style({
+    stroke: new ol.style.Stroke({
+        color: "#AA0000",
+        width: 4,
+    }),
+}));
+g_pathFeature.setStyle(new ol.style.Style({
+    stroke: new ol.style.Stroke({
+        color: "#00AA00",
+        width: 4,
+    }),
+}));
+
 function setTargetCoords()
 {
-    // TODO
+    g_trailEnd = null;
+    g_trailLine.setCoordinates([]);
 }
 
 function disableFollow()
@@ -44,7 +67,11 @@ function positionCallback(pos)
     var newLonLat = [ pos.coords.longitude, pos.coords.latitude ];
 	var newCenter = ol.proj.fromLonLat(newLonLat, g_view.getProjection().getCode());
 
-    g_curPoint.setCoordinates(newCenter);
+    g_curPoint.setCenter(newCenter);
+    if (g_trailEnd)
+        g_trailLine.setCoordinates([newCenter, g_trailEnd]);
+    else
+        g_trailLine.setCoordinates([]);
 
     if (g_lastLonLat != null)
     {
@@ -111,7 +138,8 @@ function main()
 {
     g_map = new ol.Map({
         layers: [ new ol.layer.Tile({ source: new ol.source.OSM() }), 
-                  new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature ] }) })
+                  new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
+                                                                                 g_trailFeature] }) })
         ],
         target: 'map',
         view: g_view,

@@ -1,3 +1,5 @@
+var g_noSleep = new NoSleep();
+var g_wakeLockEnabled = false;
 
 var g_view = new ol.View({ center: [0, 0], zoom: 17 });
 var g_map = null;
@@ -136,6 +138,7 @@ function positionError(err)
 
 function main()
 {
+    
     g_map = new ol.Map({
         layers: [ new ol.layer.Tile({ source: new ol.source.OSM() }), 
                   new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
@@ -189,6 +192,31 @@ function main()
     else
     {
         navigator.geolocation.watchPosition(positionCallback, positionError, options);
+    }
+}
+
+function toggleWakeLock2()
+{
+    var elem = document.getElementById("btnwake");
+    elem.innerText = "Testing...";
+
+    try
+    {
+        if (!g_wakeLockEnabled)
+            g_noSleep.enable();
+        else
+            g_noSleep.disable();
+
+        g_wakeLockEnabled = !g_wakeLockEnabled;
+
+        if (g_wakeLockEnabled)
+            elem.innerText = "Disable wake lock";
+        else
+            elem.innerText = "Enable wake lock";
+    }
+    catch(e)
+    {
+        alert("Error: " + e);
     }
 }
 

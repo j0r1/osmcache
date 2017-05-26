@@ -16,7 +16,7 @@
             height: 100%;
             }
         #controls {
-            width: 50%;
+            width: 90%;
             position: absolute;
             bottom: 0px;
             left: 0px;
@@ -29,10 +29,10 @@
     <body>
         <div id="map"></div>
         <div id="controls">
-            <button onclick="setTargetCoords()">Set target coords</button>
-            <button onclick="enableFollow()">Enable following</button>
+            <span id="spndistwrap" style="display: none">Distance to target: <span id="spndist"></span></span><br>
+            <button onclick="setTargetCoords()">Set target coords</button><br><br>
+            <button onclick="enableFollow()">Enable following</button><br><br>
             <button id="btnwake" onclick="toggleWakeLock()">Enable wake lock</button>
-            <span id="spndistwrap" style="display: none">Distance to target: <span id="spndist"></span></span>
         </div>
     </body>
 </html>

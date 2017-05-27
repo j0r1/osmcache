@@ -260,8 +260,93 @@ function positionError(errCode, errMsg)
     alert(msg);
 }
 
-var g_cnvs = document.createElement("canvas");
-var g_ctx = g_cnvs.getContext("2d");
+var g_db = null;
+var g_hit = 0;
+var g_miss = 0;
+
+if (location.hash == "#cleardb")
+    indexedDB.deleteDatabase("osmcachedatabase");
+
+(function()
+{
+    var r = indexedDB.open("osmcachedatabase", 1);
+    r.onsuccess = function()
+    {
+        console.log("got database");
+        g_db = r.result;
+    }
+    r.onupgradeneeded = function(event) 
+    {
+        console.log("onupgradeneeded");
+        var db = event.target.result;
+        var objectStore = db.createObjectStore("tilecache", { keyPath: "zyx" });
+    }
+})();
+
+function updateHitMiss()
+{
+    $("#spnhit").text("" + g_hit);
+    $("#spnmiss").text("" + g_miss);
+}
+
+function getCachedTile(z, y, x, callback)
+{
+    var idxStr = "" + z +"_" + y + "_" + x;
+
+    if (!g_db)
+        setTimeout(function() { callback(null); }, 0);
+    else
+    {
+        var transaction = g_db.transaction(["tilecache"], "readonly");
+        var r = transaction.objectStore("tilecache").get(idxStr);
+        r.onsuccess = function(evt)
+        {
+            var blob = null;
+            var obj = evt.target.result;
+            if (!obj)
+                blob = null;
+            else
+            {
+                blob = obj.blob;
+                console.log("Retrieved blob for " + idxStr);
+                console.log(blob);
+            }
+            setTimeout(function() { callback(blob); }, 0);
+        }
+        r.onerror = function(evt)
+        {
+            console.log("Error getting " + idxStr + " from cache");
+            console.log(evt);
+            setTimeout(function() { callback(null); }, 0);
+        }
+    }
+}
+
+function storeCachedTile(z, y, x, blob)
+{
+    var idxStr = "" + z +"_" + y + "_" + x;
+
+    if (!g_db) // TODO: try again later?
+        return;
+
+    var transaction = g_db.transaction(["tilecache"], "readwrite");
+    var r = transaction.objectStore("tilecache").put({blob: blob, zyx: idxStr});
+    r.onsuccess = function()
+    {
+        console.log("Saved " + idxStr + " in database");
+    }
+    r.onerror = function(evt)
+    {
+        console.log("Couldn't save " + idxStr + " in database");
+        console.log(evt);
+    }
+}
+
+function setImageTileFromBlob(imageTile, blob)
+{
+    var imgURL = URL.createObjectURL(blob);
+    imageTile.getImage().src = imgURL;
+}
 
 function tileLoadFunction(imageTile, src)
 {
@@ -269,24 +354,36 @@ function tileLoadFunction(imageTile, src)
     var z = parseInt(parts[1]);
     var y = parseInt(parts[2]);
     var x = parseInt(parts[3].split(".")[0]);
-    console.log("" + z + " " + y + " " + x);
+    //console.log("" + z + " " + y + " " + x);
 
-    var xhr = new XMLHttpRequest();
-
-    xhr.open("GET", src, true);
-    xhr.responseType = "blob";
-	xhr.addEventListener("load", function () 
-	{
-        if (xhr.status == 200)
+    getCachedTile(z, y, x, function(blob)
+    {
+        if (blob)
         {
-            var imgURL = URL.createObjectURL(xhr.response);
-            imageTile.getImage().src = imgURL;
-        }
-	}, false);
-	xhr.send();
+            g_hit++;
 
-    //console.log(imageTile);
-    //console.log(src);
+            setImageTileFromBlob(imageTile, blob);
+        }
+        else
+        { 
+            g_miss++;
+
+            var xhr = new XMLHttpRequest();
+
+            xhr.open("GET", src, true);
+            xhr.responseType = "blob";
+            xhr.addEventListener("load", function () 
+            {
+                if (xhr.status == 200)
+                {
+                    setImageTileFromBlob(imageTile, xhr.response);
+                    storeCachedTile(z, y, x, xhr.response);
+                }
+            }, false);
+            xhr.send();
+        }
+        updateHitMiss();
+    });
 }
 
 function main()

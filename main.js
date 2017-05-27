@@ -1,4 +1,4 @@
-vex.defaultOptions.className = 'vex-theme-wireframe';
+vex.defaultOptions.className = 'vex-theme-top';
 
 var g_noSleep = new NoSleep();
 var g_wakeLockEnabled = false;
@@ -101,9 +101,9 @@ function setTargetCoords()
     vex.dialog.open(
     {
         input: [ 
-            '<h3>Select target coordinates</h3>',
-            'Latitude: <input type="text" id="inp_lat"><br>',
-            'Longitude: <input type="text" id="inp_lon"><br>',
+            '<h3>Set latitude and longitude</h3>',
+            '<input type="text" id="inp_lat"><br>',
+            '<input type="text" id="inp_lon"><br>',
         ].join("\n"),
         buttons: [
         {
@@ -127,14 +127,15 @@ function setTargetCoords()
             className: 'vex-dialog-button-secondary',
             click: function()
             {
-                setCoords(g_lastImmediateLonLat);
+                if (g_lastImmediateLonLat)
+                    setCoords(g_lastImmediateLonLat);
             }
         }],
         afterOpen: function()
         {
             if (g_trailEnd)
                 setCoords(g_trailEnd);
-            else
+            else if (g_lastImmediateLonLat)
                 setCoords(g_lastImmediateLonLat);
         },
         callback: function(data)
@@ -154,7 +155,7 @@ function setTargetCoords()
                 g_trailEnd = [ lon, lat ];
 
             if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
-                setTimeout(function() { positionCallback({ coords: { longitude: g_lastImmediateLonLat[0], latitude: g_lastImmediateLonLat[1] } }); }, 0);
+                setTimeout(function() { positionCallback(g_lastImmediateLonLat[0], g_lastImmediateLonLat[1]); }, 0);
         }
     });
 }
@@ -178,12 +179,9 @@ function enableFollow()
     g_view.animate(obj);
 }
 
-function positionCallback(pos)
+function positionCallback(lon, lat)
 {
-    //console.log(pos);
-    //console.log([pos.coords.longitude, pos.coords.latitude]);
-
-    var newLonLat = [ pos.coords.longitude, pos.coords.latitude ];
+    var newLonLat = [ lon, lat ];
 	var newCenter = ol.proj.fromLonLat(newLonLat, g_view.getProjection().getCode());
     g_lastImmediateLonLat = newLonLat;
 
@@ -255,17 +253,46 @@ function positionCallback(pos)
 
 }
 
-function positionError(err)
+function positionError(errCode, errMsg)
 {
-    var msg = 'ERROR(' + err.code + '): ' + err.message;
+    var msg = 'ERROR(' + errCode + '): ' + errMessage;
     console.warn(msg);
     alert(msg);
+}
+
+var g_cnvs = document.createElement("canvas");
+var g_ctx = g_cnvs.getContext("2d");
+
+function tileLoadFunction(imageTile, src)
+{
+    var parts = src.split("//")[1].split("/");
+    var z = parseInt(parts[1]);
+    var y = parseInt(parts[2]);
+    var x = parseInt(parts[3].split(".")[0]);
+    console.log("" + z + " " + y + " " + x);
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.open("GET", src, true);
+    xhr.responseType = "blob";
+	xhr.addEventListener("load", function () 
+	{
+        if (xhr.status == 200)
+        {
+            var imgURL = URL.createObjectURL(xhr.response);
+            imageTile.getImage().src = imgURL;
+        }
+	}, false);
+	xhr.send();
+
+    //console.log(imageTile);
+    //console.log(src);
 }
 
 function main()
 {
     g_map = new ol.Map({
-        layers: [ new ol.layer.Tile({ source: new ol.source.OSM() }), 
+        layers: [ new ol.layer.Tile({ source: new ol.source.OSM({tileLoadFunction:tileLoadFunction}) }), 
                   new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
                                                                                  g_trailFeature] }) })
         ],
@@ -274,50 +301,15 @@ function main()
         renderer: 'webgl',
         loadTilesWhileAnimating: true,
         preload: 4,
+        interactions: ol.interaction.defaults({doubleClickZoom :false}),
     });
 
     g_map.on('pointerdrag', disableFollow);
+    g_map.on('dblclick', function() { setTimeout(setTargetCoords, 1000); });
 
-    if (!("geolocation" in navigator))
-    {
-        alert("Geolocation API not present");
-        return;
-    }
-
-    options = {
-        enableHighAccuracy: false,
-        timeout: 1000,
-        maximumAge: 0
-    };
-    
-    var f = function()
-    {
-        var center = [5.4278813, 50.9167316];
-        var radius = 0.01;
-        var t = 0;
-
-        return function()
-        {
-            t += 0.0005;
-            return [ center[0]+radius*Math.cos(t)*((Math.random()-0.5)/100.0+1.0), 
-                     center[1]+radius*Math.sin(t)*((Math.random()-0.5)/100.0+1.0) ];
-        }
-    }
-
-    if (location.hostname == "localhost")
-    {
-        var newPosFunction = f();
-        setInterval(function() {
-            var p = newPosFunction();
-            var obj = { coords: { longitude: p[0], latitude: p[1] } };
-            //console.log("Fake pos: " + JSON.stringify(obj));
-            positionCallback(obj);
-        },500);
-    }
-    else
-    {
-        navigator.geolocation.watchPosition(positionCallback, positionError, options);
-    }
+    var geo = new GEOLocation();
+    geo.onPositionError = positionError;
+    geo.onSmoothedPosition = positionCallback;
 }
 
 function toggleWakeLock()
@@ -346,3 +338,10 @@ function toggleWakeLock()
 }
 
 $(document).ready(main);
+
+window.onbeforeunload = function(e)
+{
+    return "Please confirm";
+}
+
+

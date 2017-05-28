@@ -156,9 +156,9 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
 }
 
 var g_osmServers = [ 
-    "http://a.tile.openstreetmap.org/", 
-    "http://b.tile.openstreetmap.org/",
-    "http://c.tile.openstreetmap.org/"
+    "//a.tile.openstreetmap.org/", 
+    "//b.tile.openstreetmap.org/",
+    "//c.tile.openstreetmap.org/"
 ];
 
 function startDownloader(retObj, tileList)

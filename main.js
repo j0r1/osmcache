@@ -520,25 +520,6 @@ var g_db = null;
 var g_hit = 0;
 var g_miss = 0;
 
-if (location.hash == "#cleardb")
-    indexedDB.deleteDatabase("osmcachedatabase");
-
-(function()
-{
-    var r = indexedDB.open("osmcachedatabase", 1);
-    r.onsuccess = function()
-    {
-        console.log("got database");
-        g_db = r.result;
-    }
-    r.onupgradeneeded = function(event) 
-    {
-        console.log("onupgradeneeded");
-        var db = event.target.result;
-        var objectStore = db.createObjectStore("tilecache", { keyPath: "zyx" });
-    }
-})();
-
 function updateHitMiss()
 {
     $("#spnhit").text("" + g_hit);
@@ -548,54 +529,13 @@ function updateHitMiss()
 function getCachedTile(z, y, x, callback)
 {
     var idxStr = "" + z +"_" + y + "_" + x;
-
-    if (!g_db)
-        setTimeout(function() { callback(null); }, 0);
-    else
-    {
-        var transaction = g_db.transaction(["tilecache"], "readonly");
-        var r = transaction.objectStore("tilecache").get(idxStr);
-        r.onsuccess = function(evt)
-        {
-            var blob = null;
-            var obj = evt.target.result;
-            if (!obj)
-                blob = null;
-            else
-            {
-                blob = obj.blob;
-                console.log("Retrieved blob for " + idxStr);
-                console.log(blob);
-            }
-            setTimeout(function() { callback(blob); }, 0);
-        }
-        r.onerror = function(evt)
-        {
-            console.log("Error getting " + idxStr + " from cache");
-            console.log(evt);
-            setTimeout(function() { callback(null); }, 0);
-        }
-    }
+    g_db.getEntry(idxStr, callback);
 }
 
 function storeCachedTile(z, y, x, blob)
 {
     var idxStr = "" + z +"_" + y + "_" + x;
-
-    if (!g_db) // TODO: try again later?
-        return;
-
-    var transaction = g_db.transaction(["tilecache"], "readwrite");
-    var r = transaction.objectStore("tilecache").put({blob: blob, zyx: idxStr});
-    r.onsuccess = function()
-    {
-        console.log("Saved " + idxStr + " in database");
-    }
-    r.onerror = function(evt)
-    {
-        console.log("Couldn't save " + idxStr + " in database");
-        console.log(evt);
-    }
+    g_db.storeEntry(idxStr, blob);
 }
 
 function setImageTileFromBlob(imageTile, blob)
@@ -644,25 +584,37 @@ function tileLoadFunction(imageTile, src)
 
 function main()
 {
-    g_map = new ol.Map({
-        layers: [ new ol.layer.Tile({ source: new ol.source.OSM({tileLoadFunction:tileLoadFunction}) }), 
-                  new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
-                                                                                 g_trailFeature] }) })
-        ],
-        target: 'map',
-        view: g_view,
-        renderer: 'webgl',
-        loadTilesWhileAnimating: true,
-        preload: 4,
-        interactions: ol.interaction.defaults({doubleClickZoom :false}),
-    });
+    g_db = new DB();
+    g_db.onopen = function()
+    {
+        $("#initiallyhidden").show();
 
-    g_map.on('pointerdrag', disableFollow);
-    g_map.on('dblclick', function() { setTimeout(setTargetCoords, 1000); });
+        g_map = new ol.Map({
+            layers: [ new ol.layer.Tile({ source: new ol.source.OSM({tileLoadFunction:tileLoadFunction}) }), 
+                      new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
+                                                                                     g_trailFeature] }) })
+            ],
+            target: 'map',
+            view: g_view,
+            renderer: 'webgl',
+            loadTilesWhileAnimating: true,
+            preload: 4,
+            interactions: ol.interaction.defaults({doubleClickZoom :false}),
+        });
 
-    var geo = new GEOLocation();
-    geo.onPositionError = positionError;
-    geo.onSmoothedPosition = positionCallback;
+        g_map.on('pointerdrag', disableFollow);
+        g_map.on('dblclick', function() { setTimeout(setTargetCoords, 1000); });
+
+        var geo = new GEOLocation();
+        geo.onPositionError = positionError;
+        geo.onSmoothedPosition = positionCallback;
+    }
+    g_db.onopenerror = function(evt)
+    {
+        console.log("Error opening DB:");
+        console.log(evt);
+        vex.dialog.alert("Error: unable to open tile cache database");
+    }
 }
 
 function toggleWakeLock()

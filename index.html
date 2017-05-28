@@ -10,9 +10,10 @@
         <script src="vex.js"></script>
         <script src="NoSleep.js"></script>
         <script src="geoloc.js"></script>
+        <script src="db.js"></script>
         <script src="main.js"></script>
         <style>
-        html, body, #map {
+        html, body, #map, #initiallyhidden {
             margin: 0;
             width: 100%;
             height: 100%;
@@ -29,14 +30,16 @@
         </style>
     </head>
     <body>
-        <div id="map"></div>
-        <div id="controls">
-            <span id="spndistwrap" style="display: none">Distance to target: <span id="spndist"></span></span><br>
-            <button onclick="setTargetCoords()">Set target coords</button><br><br>
-            <button onclick="prefetchTiles()">Pre-fetch tiles</button><br><br>
-            <button onclick="enableFollow()">Enable following</button><br><br>
-            <button id="btnwake" onclick="toggleWakeLock()">Enable wake lock</button><br>
-            <span>Cache hits: <span id="spnhit">0</span> Cache misses: <span id="spnmiss">0</span></span>
+        <div id="initiallyhidden" style="display:none;">
+            <div id="map"></div>
+            <div id="controls">
+                <span id="spndistwrap" style="display: none">Distance to target: <span id="spndist"></span></span><br>
+                <button onclick="setTargetCoords()">Set target coords</button><br><br>
+                <button onclick="prefetchTiles()">Pre-fetch tiles</button><br><br>
+                <button onclick="enableFollow()">Enable following</button><br><br>
+                <button id="btnwake" onclick="toggleWakeLock()">Enable wake lock</button><br>
+                <span>Cache hits: <span id="spnhit">0</span> Cache misses: <span id="spnmiss">0</span></span>
+            </div>
         </div>
     </body>
 </html>

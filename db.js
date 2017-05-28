@@ -134,6 +134,12 @@ var DB = function()
             m_db = r.result;
             setTimeout(function() { _this.onopen(); }, 0);
         }
+        r.onupgradeneeded = function(event) 
+        {
+            console.log("onupgradeneeded");
+            var db = event.target.result;
+            var objectStore = db.createObjectStore(m_storeName, { keyPath: m_keyName });
+        }
         r.onerror = function()
         {
             r.onerror = null;

@@ -155,11 +155,90 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
     });
 }
 
+var g_osmServers = [ 
+    "http://a.tile.openstreetmap.org/", 
+    "http://b.tile.openstreetmap.org/",
+    "http://c.tile.openstreetmap.org/"
+];
+
+function startDownloader(retObj, tileList)
+{
+    var increaseCount = function()
+    {
+        retObj._numprocessed++;
+        if (retObj._numprocessed < retObj._numtotal && !retObj.cancelled) // need to continue
+            setTimeout(f, 0);
+
+        var n = retObj._numprocessed;
+        if (retObj.onnumtiles)
+            setTimeout(function() { retObj.onnumtiles(n); }, 0);
+    }
+
+    // Start async
+    var f = function()
+    {
+        if (tileList.length == 0) // nothing to do
+            return;
+
+        var tileInfo = tileList.pop();
+        
+        getCachedTile(tileInfo.Z, tileInfo.Y, tileInfo.X, function(blob)
+        {
+            if (blob) // Entry already exists
+            {
+                increaseCount();
+            }
+            else // Download it
+            {
+                var xhr = new XMLHttpRequest();
+                var server = g_osmServers[Math.floor(g_osmServers.length*Math.random())];
+                var url = server + tileInfo.Z + "/" + tileInfo.X + "/" + tileInfo.Y + ".png";
+
+                xhr.open("GET", url, true);
+                xhr.responseType = "blob";
+                xhr.addEventListener("load", function () 
+                {
+                    // TODO: log errors? Do something different?
+                    increaseCount();
+
+                    if (xhr.status == 200) // Note that X and Y names are swapped here. TODO: fix all this
+                        storeCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, xhr.response);
+
+                }, false);
+                xhr.send();
+            }
+        });
+    };
+
+    setTimeout(f, 0); // Start it
+}
+
 function downloadTilesInternal(tilesToDownload, cutoffLevel)
 {
-    var ret = { cancelled: false, onnumtiles: function() { } };
+    var ret = { 
+        cancelled: false, 
+        onnumtiles: null,
+        _numprocessed: 0, 
+        _numtotal: 0
+    };
     
-    // TODO
+    // build a list of tiles to download
+    var tileList = [ ];
+
+    for (var z = 1 ; z <= cutoffLevel ; z++)
+    {
+        var xPosList = Object.keys(tilesToDownload[z].X);
+        var yPosList = Object.keys(tilesToDownload[z].Y);
+
+        for (var i = 0 ; i < yPosList.length ; i++)
+            for (var j = 0 ; j < xPosList.length ; j++)
+                tileList.push({ Z: z, X: xPosList[j], Y:yPosList[i]})
+    }
+    ret._numtotal = tileList.length;
+
+    var numDownloaders = 10; // TODO: what's a good value? make this configurable?
+    for (var i = 0 ; i < numDownloaders ; i++)
+        startDownloader(ret, tileList);
 
     return ret;
 }

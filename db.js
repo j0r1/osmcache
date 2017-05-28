@@ -33,7 +33,9 @@ var DB = function()
             m_objectStore = m_db.transaction([m_storeName], "readwrite").objectStore(m_storeName);
         }
         else
-            console.log("Reusing objectStore")
+        {
+            //console.log("Reusing objectStore")
+        }
 
         if (transObj.type == m_getOperation)
         {
@@ -62,7 +64,7 @@ var DB = function()
                 if (m_operations.length == 0)
                 {
                     m_objectStore = null;
-                    console.log("Set objectStore to null");
+                    //console.log("Set objectStore to null");
                 }
                 else
                     startTransactions();
@@ -90,7 +92,7 @@ var DB = function()
                 if (m_operations.length == 0)
                 {
                     m_objectStore = null;
-                    console.log("Set objectStore to null");
+                    //console.log("Set objectStore to null");
                 }
                 else
                     startTransactions();

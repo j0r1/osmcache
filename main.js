@@ -164,6 +164,8 @@ var g_osmServers = [
 function startDownloader(retObj, tileList)
 {
     var downloadCache = [ ];
+    var numStored = 0;
+    var numStoreRequested = 0;
 
     var flushDownloadCache = function()
     {
@@ -171,7 +173,12 @@ function startDownloader(retObj, tileList)
         for (var i = 0 ; i < downloadCache.length ; i++)
         {
             var obj = downloadCache[i];
-            storeCachedTile(obj.Z, obj.Y, obj.X, obj.blob);
+            numStoreRequested++;
+            storeCachedTile(obj.Z, obj.Y, obj.X, obj.blob, function()
+            {
+                numStored++;
+                console.log("Stored " + numStored + "/" + numStoreRequested);
+            });
         }
         downloadCache = [ ];
     }
@@ -562,10 +569,10 @@ function getCachedTile(z, y, x, callback)
     g_db.getEntry(idxStr, callback);
 }
 
-function storeCachedTile(z, y, x, blob)
+function storeCachedTile(z, y, x, blob, callback)
 {
     var idxStr = "" + z +"_" + y + "_" + x;
-    g_db.storeEntry(idxStr, blob);
+    g_db.storeEntry(idxStr, blob, callback);
 }
 
 function setImageTileFromBlob(imageTile, blob)

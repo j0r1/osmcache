@@ -166,6 +166,9 @@ function startDownloader(retObj, tileList)
     var increaseCount = function()
     {
         retObj._numprocessed++;
+        if (retObj._numprocessed >= retObj._numtotal)
+            retObj.isdone = true;
+
         if (retObj._numprocessed < retObj._numtotal && !retObj.cancelled) // need to continue
             setTimeout(f, 0);
 
@@ -182,7 +185,8 @@ function startDownloader(retObj, tileList)
 
         var tileInfo = tileList.pop();
         
-        getCachedTile(tileInfo.Z, tileInfo.Y, tileInfo.X, function(blob)
+        // Note that X and Y names are swapped here. TODO: fix all this
+        getCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, function(blob)
         {
             if (blob) // Entry already exists
             {
@@ -217,6 +221,7 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
 {
     var ret = { 
         cancelled: false, 
+        isdone: false,
         onnumtiles: null,
         _numprocessed: 0, 
         _numtotal: 0
@@ -277,6 +282,8 @@ function downloadTiles(tilesToDownload, cutoffLevel)
     r.onnumtiles = function(n)
     {
         $("#spntilesdownloaded").text("" + n);
+        if (r.isdone)
+            dlg.close();
     }
 }
 

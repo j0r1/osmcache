@@ -39,7 +39,181 @@ g_pathFeature.setStyle(new ol.style.Style({
     }),
 }));
 
+
 function setTargetCoords()
+{
+    getCoordsDialog('Enter target latitude/longitude', function(lat, lon)
+    {
+        if (lat === undefined && lon === undefined)
+            g_trailEnd = null;
+        else if (lat !== undefined && lon !== undefined)
+            g_trailEnd = [ lon, lat ];
+
+        if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
+            setTimeout(function() { positionCallback(g_lastImmediateLonLat[0], g_lastImmediateLonLat[1]); }, 0);
+    });
+}
+
+function startPrefetch(lat, lon, radius, cutoffLevel)
+{
+    // Determine the tiles to download
+
+    // Helper functions from http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Lon..2Flat._to_tile_numbers_2
+    function num2deg(xtile, ytile, zoom)
+    {
+        var n = 1 << zoom;
+        var lon_deg = xtile/n * 360.0 - 180.0;
+        var lat_rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * ytile / n)));
+        var lat_deg = lat_rad * 180.0/Math.PI;
+        return { N: lat_deg, E: lon_deg };
+    }
+
+    function deg2num(lat_deg, lon_deg, zoom)
+    {
+        var lat_rad = lat_deg/180.0 * Math.PI;
+        var n = 1 << zoom;
+        var xtile = Math.floor((lon_deg + 180.0) / 360.0 * n);
+        var ytile = Math.floor((1.0 - Math.log(Math.tan(lat_rad) + (1 / Math.cos(lat_rad))) / Math.PI) / 2.0 * n);
+        return { X: xtile, Y: ytile };
+    }
+
+    function clip(x)
+    {
+        if (x < -85.0) x = -85.0;
+        else if (x > 85.0) x = 85.0;
+        return x;
+    }
+
+    function wrap(x)
+    {
+        if (x < -180.0) x += 360.0;
+        else if (x > 180.0) x -= 360.0;
+        return x;
+    }
+
+    var maxZ = 19;
+    var XY = deg2num(lat, lon, maxZ);
+    var NE = num2deg(0.5 + XY.X, 0.5 + XY.Y, maxZ);
+    var NE1 = num2deg(1.5 + XY.X, 1.5 + XY.Y, maxZ);
+
+    var dNtile = Math.abs(NE1.N-NE.N);
+    var dEtile = Math.abs(NE1.E-NE.E);
+
+    var rMeter = radius;
+    var rEarth = 6378137;
+    var dN = (rMeter/rEarth) * (180.0/Math.PI);
+    var dE = (rMeter/(rEarth*Math.cos(NE.N*Math.PI/180.0))) * (180.0/Math.PI);
+
+    var tilesToDownload = { };
+
+    for (var z = maxZ ; z > 0 ; z--)
+    {
+        tilesToDownload[z] = { };
+        tilesToDownload[z]["X"] = { };
+        tilesToDownload[z]["Y"] = { };
+    }
+
+    var i = 0;
+    while (i*dNtile < dN)
+    {
+        for (var z = maxZ ; z > 0 ; z--)
+        {
+            XY = deg2num(clip(NE.N+i*dNtile), NE.E, z);
+            tilesToDownload[z]["Y"][XY.Y] = true;
+            XY = deg2num(clip(NE.N-i*dNtile), NE.E, z)
+            tilesToDownload[z]["Y"][XY.Y] = true;
+        }
+        i += 1;
+    }
+
+    i = 0;
+    while (i*dEtile < dE)
+    {
+        for (var z = maxZ ; z > 0 ; z--)
+        {
+            XY = deg2num(NE.N, wrap(NE.E+i*dEtile), z);
+            tilesToDownload[z]["X"][XY.X] = true;
+            XY = deg2num(NE.N, wrap(NE.E-i*dEtile), z);
+            tilesToDownload[z]["X"][XY.X] = true;
+        }
+        i += 1;
+    }
+
+    var numTiles = 0;
+    for (var z = 1 ; z <= cutoffLevel ; z++)
+        numTiles += Object.keys(tilesToDownload[z].X).length * Object.keys(tilesToDownload[z].Y).length;
+
+    vex.dialog.confirm({
+        message: 'This will download ' + numTiles + ' tiles. Continue?',
+        callback: function (value) 
+        {
+            if (!value)
+                return;
+
+            downloadTiles(tilesToDownload, cutoffLevel);
+        }
+    });
+}
+
+function downloadTilesInternal(tilesToDownload, cutoffLevel)
+{
+    var ret = { cancelled: false, onnumtiles: function() { } };
+    
+    // TODO
+
+    return ret;
+}
+
+function downloadTiles(tilesToDownload, cutoffLevel)
+{
+    var numTiles = 0;
+    for (var z = 1 ; z <= cutoffLevel ; z++)
+        numTiles += Object.keys(tilesToDownload[z].X).length * Object.keys(tilesToDownload[z].Y).length;
+
+    var r = downloadTilesInternal(tilesToDownload, cutoffLevel);
+
+    var dlg = vex.dialog.open(
+    {
+        input: [ 
+            "<h3>Downloading tiles</h3>",
+            "Downloaded <span id='spntilesdownloaded'>0</span>/" + numTiles + " tiles" 
+        ].join("\n"),
+        buttons : [{
+            text: 'Cancel',
+            type: 'button',
+            className: 'vex-dialog-button-secondary',
+            click: function() 
+            {
+              this.value = false;
+              return this.close();
+            }
+        }],
+        callback: function(data)
+        {
+            console.log(data);
+            r.cancelled = true;
+        }
+    });
+
+    r.onnumtiles = function(n)
+    {
+        $("#spntilesdownloaded").text("" + n);
+    }
+}
+
+function prefetchTiles()
+{
+    getCoordsDialog('Enter prefetch latitude/longitude', function(lat, lon)
+    {
+        if (!(lat !== undefined && lon !== undefined))
+            return;
+        
+        // TODO: make max level and radius configurable?
+        startPrefetch(lat, lon, 5000, 17);
+    });
+}
+
+function getCoordsDialog(title, newLatLonCallback)
 {
     function fillZeros(x, num)
     {
@@ -101,7 +275,7 @@ function setTargetCoords()
     vex.dialog.open(
     {
         input: [ 
-            '<h3>Set latitude and longitude</h3>',
+            '<h3>' + title + '</h3>',
             '<input type="text" id="inp_lat"><br>',
             '<input type="text" id="inp_lon"><br>',
         ].join("\n"),
@@ -127,16 +301,21 @@ function setTargetCoords()
             className: 'vex-dialog-button-secondary',
             click: function()
             {
-                if (g_lastImmediateLonLat)
-                    setCoords(g_lastImmediateLonLat);
+                var center = g_view.getCenter();
+                var lonlat = ol.proj.toLonLat(center, g_view.getProjection().getCode());
+                setCoords(lonlat);
             }
         }],
         afterOpen: function()
         {
             if (g_trailEnd)
                 setCoords(g_trailEnd);
-            else if (g_lastImmediateLonLat)
-                setCoords(g_lastImmediateLonLat);
+            else
+            {
+                var center = g_view.getCenter();
+                var lonlat = ol.proj.toLonLat(center, g_view.getProjection().getCode());
+                setCoords(lonlat);
+            }
         },
         callback: function(data)
         {
@@ -146,16 +325,7 @@ function setTargetCoords()
             var lat = parseLatLon($("#inp_lat").val());
             var lon = parseLatLon($("#inp_lon").val());
 
-            console.log(lat);
-            console.log(lon);
-
-            if (lat === undefined && lon === undefined)
-                g_trailEnd = null;
-            else if (lat !== undefined && lon !== undefined)
-                g_trailEnd = [ lon, lat ];
-
-            if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
-                setTimeout(function() { positionCallback(g_lastImmediateLonLat[0], g_lastImmediateLonLat[1]); }, 0);
+            newLatLonCallback(lat, lon);
         }
     });
 }

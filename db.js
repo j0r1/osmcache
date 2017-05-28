@@ -29,7 +29,7 @@ var DB = function()
         var transObj = m_operations.splice(0, 1)[0];
         if (m_objectStore == null)
         {
-            console.log("Opening objectStore");
+            //console.log("Opening objectStore");
             m_objectStore = m_db.transaction([m_storeName], "readwrite").objectStore(m_storeName);
         }
         else
@@ -37,14 +37,14 @@ var DB = function()
 
         if (transObj.type == m_getOperation)
         {
-            console.log("Scheduling get");
+            //console.log("Scheduling get");
             m_transactionBusy = true;
             var r = m_objectStore.get(transObj.key);
             r.onsuccess = function(evt)
             {
                 m_transactionBusy = false;
 
-                console.log("get complete");
+                //console.log("get complete");
                 var blob = null;
                 var obj = evt.target.result;
                 if (!obj)
@@ -53,7 +53,7 @@ var DB = function()
                 {
                     blob = obj[m_valueName];
                     console.log("Retrieved blob for " + transObj.key);
-                    console.log(blob);
+                    //console.log(blob);
                 }
 
                 if (transObj.callback)
@@ -70,7 +70,7 @@ var DB = function()
         }
         else if (transObj.type == m_setOperation)
         {
-            console.log("Scheduling set");
+            //console.log("Scheduling set");
             m_transactionBusy = true;
 
             var obj = { }
@@ -82,7 +82,7 @@ var DB = function()
             {
                 m_transactionBusy = false;
 
-                console.log("set complete");
+                //console.log("set complete");
                 console.log("Saved " + transObj.key + " in database");
                 if (transObj.callback)
                     setTimeout(function() { transObj.callback(); }, 0);

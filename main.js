@@ -163,11 +163,33 @@ var g_osmServers = [
 
 function startDownloader(retObj, tileList)
 {
+    var downloadCache = [ ];
+
+    var flushDownloadCache = function()
+    {
+        console.log("Syncing " + downloadCache.length + " download cache entries");
+        for (var i = 0 ; i < downloadCache.length ; i++)
+        {
+            var obj = downloadCache[i];
+            storeCachedTile(obj.Z, obj.Y, obj.X, obj.blob);
+        }
+        downloadCache = [ ];
+    }
+
+    var checkSyncDownloadCache = function()
+    {
+        if (downloadCache.length > 100) // TODO: make this configurable? What's a good value?
+            flushDownloadCache();
+    }
+
     var increaseCount = function()
     {
         retObj._numprocessed++;
         if (retObj._numprocessed >= retObj._numtotal)
+        {
             retObj.isdone = true;
+            flushDownloadCache();
+        }
 
         if (retObj._numprocessed < retObj._numtotal && !retObj.cancelled) // need to continue
             setTimeout(f, 0);
@@ -206,8 +228,16 @@ function startDownloader(retObj, tileList)
                     increaseCount();
 
                     if (xhr.status == 200) // Note that X and Y names are swapped here. TODO: fix all this
-                        storeCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, xhr.response);
-
+                    {
+                        //storeCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, xhr.response);
+                        downloadCache.push({ 
+                            Z: tileInfo.Z,
+                            Y: tileInfo.X,
+                            X: tileInfo.Y,
+                            blob: xhr.response
+                        });
+                        checkSyncDownloadCache();
+                    }
                 }, false);
                 xhr.send();
             }

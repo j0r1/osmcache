@@ -18,6 +18,7 @@ var g_pointFeature = new ol.Feature({ geometry: g_curPoint });
 var g_trailLine = new ol.geom.LineString([], []);
 var g_trailFeature = new ol.Feature({ geometry: g_trailLine });
 var g_trailEnd = null;
+var g_trackLength = 0;
 
 var g_followEnabled = true;
 
@@ -607,6 +608,9 @@ function positionCallback(lon, lat)
             g_lastRotAng = rotAng;
             g_lastLonLat = newLonLat;
             g_lastCenter = newCenter;
+
+            g_trackLength += dist;
+            $("#spnlength").text("" + Math.round(g_trackLength));
         }
     }
     else

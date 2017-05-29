@@ -492,7 +492,7 @@ function getCoordsDialog(title, newLatLonCallback)
             }
         },
         {
-            text: 'Cur',
+            text: 'Current',
             type: 'button',
             className: 'vex-dialog-button-secondary',
             click: function()

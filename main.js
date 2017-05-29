@@ -1,5 +1,6 @@
 vex.defaultOptions.className = 'vex-theme-top';
 
+var rEarth = 6378137;
 var g_noSleep = new NoSleep();
 var g_wakeLockEnabled = false;
 
@@ -39,6 +40,79 @@ g_pathFeature.setStyle(new ol.style.Style({
     }),
 }));
 
+function setProjection()
+{
+    function getAngleAndDistance(callback)
+    {
+        vex.dialog.open(
+        {
+            input: [ 
+                'Angle (degrees from N): <input type="text" id="inp_ang" value="0"><br>',
+                'Distance (meters): <input type="text" id="inp_dst" value="0"><br>',
+            ].join("\n"),
+            buttons: [
+            {
+                text: 'OK',
+                type: 'submit',
+                className: 'vex-dialog-button-primary'
+            },
+            {
+                text: 'Cancel',
+                type: 'button',
+                className: 'vex-dialog-button-secondary',
+                click: function() 
+                {
+                  this.value = false;
+                  return this.close();
+                }
+            }],
+            callback: function(data)
+            {
+                if (data === false)
+                    return;
+
+                var ang = parseFloat($("#inp_ang").val());
+                var dst = parseFloat($("#inp_dst").val());
+
+                if (ang != ang) ang = undefined;
+                if (dst != dst) dst = undefined;
+                callback(ang, dst);
+            }
+        });
+    }
+
+    getCoordsDialog('Enter starting latitude/longitude', function(lat, lon)
+    {
+        if (lat !== undefined && lon !== undefined)
+        {
+            // Ok, got starting point, now get angle and distance
+            getAngleAndDistance(function(angle, distance)
+            {
+                if (angle !== undefined && distance !== undefined)
+                {
+                    if (distance > 5000) // Don't go too far
+                        vex.dialog.alert("Projection distance should not exceed 5,000 meters");
+                    else if (angle < 0 || angle > 360)
+                        vex.dialog.alert("Projection angle should lie between 0 and 360 degrees");
+                    else // Ok, calculate target
+                    {
+                        var alpha = (90-angle)/180.0*Math.PI;
+                        var dx = distance*Math.cos(alpha);
+                        var dy = distance*Math.sin(alpha);
+
+                        var dlat = (dy/rEarth)*(180.0/Math.PI);
+                        var dlon = (dx/(rEarth*Math.cos(lat*Math.PI/180.0)))*(180.0/Math.PI);
+
+                        g_trailEnd = [ lon+dlon, lat+dlat ];
+
+                        if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
+                            setTimeout(function() { positionCallback(g_lastImmediateLonLat[0], g_lastImmediateLonLat[1]); }, 0);
+                    }
+                }
+            });
+        }
+    });
+}
 
 function setTargetCoords()
 {
@@ -100,7 +174,6 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
     var dEtile = Math.abs(NE1.E-NE.E);
 
     var rMeter = radius;
-    var rEarth = 6378137;
     var dN = (rMeter/rEarth) * (180.0/Math.PI);
     var dE = (rMeter/(rEarth*Math.cos(NE.N*Math.PI/180.0))) * (180.0/Math.PI);
 

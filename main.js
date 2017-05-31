@@ -3,6 +3,8 @@ vex.defaultOptions.className = 'vex-theme-top';
 var rEarth = 6378137;
 var g_noSleep = new NoSleep();
 var g_wakeLockEnabled = false;
+var g_maxLevel = 19;
+var g_maxAreaSize = 10000;
 
 var g_view = new ol.View({ center: [0, 0], zoom: 17 });
 var g_map = null;
@@ -166,7 +168,7 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
         return x;
     }
 
-    var maxZ = 19;
+    var maxZ = g_maxLevel;
     var XY = deg2num(lat, lon, maxZ);
     var NE = num2deg(0.5 + XY.X, 0.5 + XY.Y, maxZ);
     var NE1 = num2deg(1.5 + XY.X, 1.5 + XY.Y, maxZ);
@@ -400,13 +402,42 @@ function downloadTiles(tilesToDownload, cutoffLevel)
 
 function prefetchTiles()
 {
+    var radiusAndLevelDialog = function(lat, lon)
+    {
+        vex.dialog.open(
+        {
+            input: [
+                'Maximum tile level: <input id="inp_lvl" type="number" size="2" step="1" min="1" max="' + g_maxLevel + '" value="17">',
+                'Region size: <input id="inp_size" type="number" size="4" step="1" value="10000" min="1" max="' + g_maxAreaSize + '">',
+            ].join("\n"),
+            callback: function(data)
+            {
+                if (data === false)
+                    return;
+
+                var lvl = Math.round($("#inp_lvl").val());
+                if (lvl < 1)
+                    lvl = 1;
+                else if (lvl > g_maxLevel)
+                    lvl = g_maxLevel;
+
+                var s = Math.round($("#inp_size").val());
+                if (s < 1)
+                    s = 1;
+                else if (s > g_maxAreaSize)
+                    s = g_maxAreaSize;
+                
+                startPrefetch(lat, lon, s/2.0, lvl);
+            }
+        });
+    }
+
     getCoordsDialog('Enter prefetch latitude/longitude', function(lat, lon)
     {
         if (!(lat !== undefined && lon !== undefined))
             return;
         
-        // TODO: make max level and radius configurable?
-        startPrefetch(lat, lon, 5000, 17);
+        radiusAndLevelDialog(lat, lon);
     });
 }
 

@@ -140,7 +140,7 @@ var DB = function()
             var db = event.target.result;
             var objectStore = db.createObjectStore(m_storeName, { keyPath: m_keyName });
         }
-        r.onerror = function()
+        r.onerror = function(evt)
         {
             r.onerror = null;
             if (!m_db) // check that it's not a bubbled event

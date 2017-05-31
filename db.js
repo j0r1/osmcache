@@ -12,6 +12,8 @@ var DB = function()
     var m_operations = [ ];
     var m_objectStore = null;
     var m_transactionBusy = false;
+    var m_maxGetSetBeforeFlush = 30;
+    var m_getSetCount = 0;
 
     this.onopenerror = function(evt) { }
     this.onopen = function() { }
@@ -61,10 +63,18 @@ var DB = function()
                 if (transObj.callback)
                     setTimeout(function() { transObj.callback(blob); }, 0);
 
+                m_getSetCount++;
                 if (m_operations.length == 0)
                 {
                     m_objectStore = null;
                     //console.log("Set objectStore to null");
+                }
+                else if (m_getSetCount >= m_maxGetSetBeforeFlush)
+                {
+                    // This should end the current transaction, causing a flush
+                    m_getSetCount = 0;
+                    m_objectStore = null;
+                    setTimeout(startTransactions, 0);
                 }
                 else
                     startTransactions();
@@ -89,10 +99,18 @@ var DB = function()
                 if (transObj.callback)
                     setTimeout(function() { transObj.callback(); }, 0);
 
+                m_getSetCount++;
                 if (m_operations.length == 0)
                 {
                     m_objectStore = null;
                     //console.log("Set objectStore to null");
+                }
+                else if (m_getSetCount >= m_maxGetSetBeforeFlush)
+                {
+                    // This should end the current transaction, causing a flush
+                    m_getSetCount = 0;
+                    m_objectStore = null;
+                    setTimeout(startTransactions, 0);
                 }
                 else
                     startTransactions();

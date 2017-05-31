@@ -250,10 +250,17 @@ function startDownloader(retObj, tileList)
         {
             var obj = downloadCache[i];
             numStoreRequested++;
+            retObj.numwriterequests++;
+
+            setTimeout(function() { retObj.onnumtiles(); }, 0);
+
             storeCachedTile(obj.Z, obj.Y, obj.X, obj.blob, function()
             {
                 numStored++;
-                console.log("Stored " + numStored + "/" + numStoreRequested);
+                retObj.numwritten++;
+
+                setTimeout(function() { retObj.onnumtiles(); }, 0);
+                //console.log("Stored " + numStored + "/" + numStoreRequested);
             });
         }
         downloadCache = [ ];
@@ -267,19 +274,17 @@ function startDownloader(retObj, tileList)
 
     var increaseCount = function()
     {
-        retObj._numprocessed++;
-        if (retObj._numprocessed >= retObj._numtotal)
+        retObj.numprocessed++;
+        if (retObj.numprocessed >= retObj._numtotal)
         {
             retObj.isdone = true;
             flushDownloadCache();
         }
 
-        if (retObj._numprocessed < retObj._numtotal && !retObj.cancelled) // need to continue
+        if (retObj.numprocessed < retObj._numtotal && !retObj.cancelled) // need to continue
             setTimeout(f, 0);
 
-        var n = retObj._numprocessed;
-        if (retObj.onnumtiles)
-            setTimeout(function() { retObj.onnumtiles(n); }, 0);
+        setTimeout(function() { retObj.onnumtiles(); }, 0);
     }
 
     // Start async
@@ -303,6 +308,7 @@ function startDownloader(retObj, tileList)
                 var server = g_osmServers[Math.floor(g_osmServers.length*Math.random())];
                 var url = server + tileInfo.Z + "/" + tileInfo.X + "/" + tileInfo.Y + ".png";
 
+                //console.log("Starting download for " + url);
                 xhr.open("GET", url, true);
                 xhr.responseType = "blob";
                 xhr.addEventListener("load", function () 
@@ -336,7 +342,9 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
         cancelled: false, 
         isdone: false,
         onnumtiles: null,
-        _numprocessed: 0, 
+        numwritten: 0,
+        numwriterequests: 0,
+        numprocessed: 0, 
         _numtotal: 0
     };
     
@@ -372,8 +380,9 @@ function downloadTiles(tilesToDownload, cutoffLevel)
     var dlg = vex.dialog.open(
     {
         input: [ 
-            "<h3>Downloading tiles</h3>",
-            "Downloaded <span id='spntilesdownloaded'>0</span>/" + numTiles + " tiles" 
+            "<h3>Downloading and storing tiles</h3>",
+            "<p>Downloaded <span id='spntilesdownloaded'>0</span>/" + numTiles + " tiles</p>",
+            "<p>Writing <span id='spnnumtowrite'>0</span> tiles to database</p>",
         ].join("\n"),
         buttons : [{
             text: 'Cancel',
@@ -392,10 +401,15 @@ function downloadTiles(tilesToDownload, cutoffLevel)
         }
     });
 
-    r.onnumtiles = function(n)
+    r.onnumtiles = function()
     {
-        $("#spntilesdownloaded").text("" + n);
-        if (r.isdone)
+        var numProcessed = r.numprocessed;
+        var numWriting = r.numwriterequests - r.numwritten;
+
+        $("#spntilesdownloaded").text("" + numProcessed);
+        $("#spnnumtowrite").text("" + numWriting);
+
+        if (r.isdone && numWriting == 0)
             dlg.close();
     }
 }

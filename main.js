@@ -603,7 +603,7 @@ function positionCallback(lon, lat)
         g_trailLine.setCoordinates([newCenter, ol.proj.fromLonLat(g_trailEnd, g_view.getProjection().getCode())]);
         var dist = g_earthSphere.haversineDistance(newLonLat, g_trailEnd);
         dist = Math.round(dist);
-        $("#spndist").text("" + dist + " meter");
+        $("#spndist").text("" + dist);
         $("#spndistwrap").show();
     }
     else
@@ -738,6 +738,22 @@ function tileLoadFunction(imageTile, src)
             xhr.send();
         }
         updateHitMiss();
+    });
+}
+
+function onMenu()
+{
+    setTimeout(function()
+    {
+        $(".menu").hide("slow", "swing", function()
+        {
+            $("#menubutton").show("slow", "swing");
+        });
+    },15000);
+
+    $("#menubutton").hide("slow", "swing", function()
+    {
+        $(".menu").show("slow", "swing");
     });
 }
 

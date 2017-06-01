@@ -37,25 +37,29 @@
             background-color: rgba(255,255,255,0.7);
             user-select: none;
         }
+        .menu {
+            display: none;
+        }
         </style>
     </head>
     <body>
         <div id="initiallyhidden" style="display:none;">
             <div id="map"></div>
             <div id="controls">
-                <span id="spndistwrap" style="display: none">Distance to target: <span id="spndist"></span></span><br>
                 <table>
-                    <tr><td onclick="setTargetCoords()">Set target coords</td></tr>
-                    <tr><td onclick="setProjection()">Project target coords</td></tr>
-                    <tr><td onclick="prefetchTiles()">Pre-fetch tiles</td</tr>
-                    <tr><td onclick="enableFollow()">Enable following</td></tr>
-                    <tr><td onclick="toggleWakeLock()" id="btnwake">Enable wake lock</td></tr>
+                    <tr class="menu"><td onclick="setTargetCoords()">Set target coords</td></tr>
+                    <tr class="menu"><td onclick="setProjection()">Project target coords</td></tr>
+                    <tr class="menu"><td onclick="prefetchTiles()">Pre-fetch tiles</td</tr>
+                    <tr class="menu"><td onclick="enableFollow()">Enable following</td></tr>
+                    <tr class="menu"><td onclick="toggleWakeLock()" id="btnwake">Enable wake lock</td></tr>
+                    <tr id="menubutton"><td onclick="onMenu()">Menu</td></tr>
                 </table>
-                <span>
-                    Hits: <span id="spnhit">0</span> | 
-                    Misses: <span id="spnmiss">0</span> | 
-                    Travelled: <span id="spnlength">0</span> meter
-                </span>
+                <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>
+                <div>
+                    H: <span id="spnhit">0</span> | 
+                    M: <span id="spnmiss">0</span> |
+                    Track: <span id="spnlength">0</span> m
+                </div>
             </div>
         </div>
     </body>

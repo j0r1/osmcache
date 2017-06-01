@@ -56,7 +56,7 @@ var DB = function()
                 else
                 {
                     blob = obj[m_valueName];
-                    console.log("Retrieved blob for " + transObj.key);
+                    //console.log("Retrieved blob for " + transObj.key);
                     //console.log(blob);
                 }
 
@@ -95,7 +95,7 @@ var DB = function()
                 m_transactionBusy = false;
 
                 //console.log("set complete");
-                console.log("Saved " + transObj.key + " in database");
+                //console.log("Saved " + transObj.key + " in database");
                 if (transObj.callback)
                     setTimeout(function() { transObj.callback(); }, 0);
 
@@ -160,9 +160,11 @@ var DB = function()
         }
         r.onerror = function(evt)
         {
-            r.onerror = null;
+            //r.onerror = null;
             if (!m_db) // check that it's not a bubbled event
                 setTimeout(function() { _this.onopenerror(evt); }, 0);
+            console.log("DATABASE ERROR:");
+            console.log(evt);
         }
     }
 

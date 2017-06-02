@@ -813,6 +813,13 @@ function main()
         var geo = new GEOLocation();
         geo.onPositionError = positionError;
         geo.onSmoothedPosition = positionCallback;
+        geo.onImmediatePosition = function(lon, lat)
+        {
+            // Use the first position immediately, for quicker view update
+            positionCallback(lon, lat);
+            // Then, disable this again
+            geo.onImmediatePosition = function() { };
+        }
     }
     g_db.onopenerror = function(evt)
     {

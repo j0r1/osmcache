@@ -831,9 +831,6 @@ function main()
 
 function toggleWakeLock()
 {
-    var elem = document.getElementById("btnwake");
-    elem.innerText = "Testing...";
-
     try
     {
         if (!g_wakeLockEnabled)
@@ -844,9 +841,9 @@ function toggleWakeLock()
         g_wakeLockEnabled = !g_wakeLockEnabled;
 
         if (g_wakeLockEnabled)
-            elem.innerText = "Disable wake lock";
+            $("#btnwake").text("Disable wake lock").addClass("reddish");
         else
-            elem.innerText = "Enable wake lock";
+            $("#btnwake").text("Enable wake lock").removeClass("reddish");
     }
     catch(e)
     {

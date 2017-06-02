@@ -166,6 +166,8 @@ var DB = function()
             console.log("DATABASE ERROR:");
             console.log(evt);
         }
+
+        setInterval(startTransactions, 2000); // failsafe, in case something went wrong
     }
 
     setTimeout(constructor, 0);

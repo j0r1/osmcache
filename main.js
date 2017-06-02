@@ -45,6 +45,8 @@ g_pathFeature.setStyle(new ol.style.Style({
 
 function XHRBlobDownload(url, successCallback, failCallback)
 {
+    //console.log("loading " + url);
+    
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.responseType = "blob";
@@ -210,7 +212,7 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
 
     var tilesToDownload = { };
 
-    for (var z = maxZ ; z > 0 ; z--)
+    for (var z = maxZ ; z >= 0 ; z--)
     {
         tilesToDownload[z] = { };
         tilesToDownload[z]["X"] = { };
@@ -220,7 +222,7 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
     var i = 0;
     while (i*dNtile < dN)
     {
-        for (var z = maxZ ; z > 0 ; z--)
+        for (var z = maxZ ; z >= 0 ; z--)
         {
             XY = deg2num(clip(NE.N+i*dNtile), NE.E, z);
             tilesToDownload[z]["Y"][XY.Y] = true;
@@ -233,7 +235,7 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
     i = 0;
     while (i*dEtile < dE)
     {
-        for (var z = maxZ ; z > 0 ; z--)
+        for (var z = maxZ ; z >= 0 ; z--)
         {
             XY = deg2num(NE.N, wrap(NE.E+i*dEtile), z);
             tilesToDownload[z]["X"][XY.X] = true;
@@ -244,7 +246,7 @@ function startPrefetch(lat, lon, radius, cutoffLevel)
     }
 
     var numTiles = 0;
-    for (var z = 1 ; z <= cutoffLevel ; z++)
+    for (var z = 0 ; z <= cutoffLevel ; z++)
         numTiles += Object.keys(tilesToDownload[z].X).length * Object.keys(tilesToDownload[z].Y).length;
 
     vex.dialog.confirm({
@@ -265,9 +267,8 @@ var g_osmServers = [
     "//c.tile.openstreetmap.org/"
 ];
 
-function startDownloader(retObj, tileList, name)
+function startDownloader(retObj, tileList, name, downloadCache)
 {
-    var downloadCache = [ ];
     var numStored = 0;
     var numStoreRequested = 0;
 
@@ -291,7 +292,7 @@ function startDownloader(retObj, tileList, name)
                 //console.log("Stored " + numStored + "/" + numStoreRequested);
             });
         }
-        downloadCache = [ ];
+        downloadCache.length = 0;
     }
 
     var checkSyncDownloadCache = function()
@@ -391,8 +392,9 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
     ret._numtotal = tileList.length;
 
     var numDownloaders = 10; // TODO: what's a good value? make this configurable?
+    var downloadCache = [ ];
     for (var i = 0 ; i < numDownloaders ; i++)
-        startDownloader(ret, tileList, i);
+        startDownloader(ret, tileList, i, downloadCache);
 
     return ret;
 }
@@ -716,7 +718,13 @@ function updateHitMiss()
 function getCachedTile(z, y, x, callback)
 {
     var idxStr = "" + z +"_" + y + "_" + x;
-    g_db.getEntry(idxStr, callback);
+    g_db.getEntry(idxStr, function(blob)
+    {
+        //if (blob)
+        //    console.log("Tile for " + idxStr + " exists in cache");
+
+        callback(blob);
+    });
 }
 
 function storeCachedTile(z, y, x, blob, callback)
@@ -752,6 +760,7 @@ function tileLoadFunction(imageTile, src)
             g_miss++;
 
             XHRBlobDownload(src, function(blob)
+            //XHRBlobDownload("http://localhost:12345/" + src, function(blob)
             {
                 //console.log("Downloaded " + src);
                 setImageTileFromBlob(imageTile, blob);

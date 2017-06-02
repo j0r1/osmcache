@@ -43,6 +43,18 @@ g_pathFeature.setStyle(new ol.style.Style({
     }),
 }));
 
+function gotoCoords()
+{
+    getCoordsDialog('Enter starting latitude/longitude', function(lat, lon)
+    {
+        if (lat !== undefined && lon !== undefined)
+        {
+            g_view.setCenter(ol.proj.fromLonLat([lon, lat], g_view.getProjection().getCode()));
+            g_followEnabled = false;
+        }
+    });
+}
+
 function XHRBlobDownload(url, successCallback, failCallback)
 {
     //console.log("loading " + url);

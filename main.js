@@ -43,6 +43,34 @@ g_pathFeature.setStyle(new ol.style.Style({
     }),
 }));
 
+function XHRBlobDownload(url, successCallback, failCallback)
+{
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.responseType = "blob";
+    xhr.addEventListener("load", function()
+    {
+        if (xhr.status == 200)
+            successCallback(xhr.response);
+        else
+        {
+            var msg = "Load returned with a non 200-status: " + xhr.status;
+            console.log(msg);
+            if (failCallback)
+                failCallback(msg);
+        }
+    });
+    xhr.addEventListener("error", function(evt)
+    {
+        var msg = "Error during XMLHttpRequest";
+        console.log(msg);
+        console.log(evt);
+        if (failCallback)
+            failCallback(msg, evt);
+    });
+    xhr.send();
+}
+
 function setProjection()
 {
     function getAngleAndDistance(callback)
@@ -237,7 +265,7 @@ var g_osmServers = [
     "//c.tile.openstreetmap.org/"
 ];
 
-function startDownloader(retObj, tileList)
+function startDownloader(retObj, tileList, name)
 {
     var downloadCache = [ ];
     var numStored = 0;
@@ -245,7 +273,7 @@ function startDownloader(retObj, tileList)
 
     var flushDownloadCache = function()
     {
-        console.log("Syncing " + downloadCache.length + " download cache entries");
+        //console.log("Syncing " + downloadCache.length + " download cache entries");
         for (var i = 0 ; i < downloadCache.length ; i++)
         {
             var obj = downloadCache[i];
@@ -304,31 +332,31 @@ function startDownloader(retObj, tileList)
             }
             else // Download it
             {
-                var xhr = new XMLHttpRequest();
                 var server = g_osmServers[Math.floor(g_osmServers.length*Math.random())];
                 var url = server + tileInfo.Z + "/" + tileInfo.X + "/" + tileInfo.Y + ".png";
+                var startTime = performance.now();
 
-                //console.log("Starting download for " + url);
-                xhr.open("GET", url, true);
-                xhr.responseType = "blob";
-                xhr.addEventListener("load", function () 
+                console.log("" + name + ": " + url);
+                XHRBlobDownload(url, function(blob)
                 {
-                    // TODO: log errors? Do something different?
+                    var elapsed = performance.now() - startTime;
+                    console.log("" + name + ": downloaded in " + (elapsed/1000) + " seconds");
                     increaseCount();
-
-                    if (xhr.status == 200) // Note that X and Y names are swapped here. TODO: fix all this
-                    {
-                        //storeCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, xhr.response);
-                        downloadCache.push({ 
-                            Z: tileInfo.Z,
-                            Y: tileInfo.X,
-                            X: tileInfo.Y,
-                            blob: xhr.response
-                        });
-                        checkSyncDownloadCache();
-                    }
-                }, false);
-                xhr.send();
+                    //storeCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, xhr.response);
+                    downloadCache.push({ 
+                        Z: tileInfo.Z,
+                        Y: tileInfo.X,
+                        X: tileInfo.Y,
+                        blob: blob
+                    });
+                    checkSyncDownloadCache();
+                }, function(errMsg, errEvt)
+                {
+                    // still increase the count, so that we know when all tiles are
+                    // processed
+                    // This also starts the download again if needed
+                    increaseCount();
+                });
             }
         });
     };
@@ -364,7 +392,7 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
 
     var numDownloaders = 10; // TODO: what's a good value? make this configurable?
     for (var i = 0 ; i < numDownloaders ; i++)
-        startDownloader(ret, tileList);
+        startDownloader(ret, tileList, i);
 
     return ret;
 }
@@ -495,7 +523,7 @@ function getCoordsDialog(title, newLatLonCallback)
     {
         txt = $.trim(txt);
         var parts = txt.split(" ");
-        console.log(parts);
+        //console.log(parts);
 
         if (parts.length > 3)
             return undefined;
@@ -723,19 +751,12 @@ function tileLoadFunction(imageTile, src)
         { 
             g_miss++;
 
-            var xhr = new XMLHttpRequest();
-
-            xhr.open("GET", src, true);
-            xhr.responseType = "blob";
-            xhr.addEventListener("load", function () 
+            XHRBlobDownload(src, function(blob)
             {
-                if (xhr.status == 200)
-                {
-                    setImageTileFromBlob(imageTile, xhr.response);
-                    storeCachedTile(z, y, x, xhr.response);
-                }
-            }, false);
-            xhr.send();
+                //console.log("Downloaded " + src);
+                setImageTileFromBlob(imageTile, blob);
+                storeCachedTile(z, y, x, blob);
+            });
         }
         updateHitMiss();
     });

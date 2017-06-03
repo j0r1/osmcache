@@ -82,6 +82,14 @@ function XHRBlobDownload(url, successCallback, failCallback)
         if (failCallback)
             failCallback(msg, evt);
     });
+    xhr.addEventListener("abort", function(evt)
+    {
+        var msg = "XMLHttpRequest was aborted";
+        console.log(msg);
+        console.log(evt);
+        if (failCallback)
+            failCallback(msg, evt);
+    });
     xhr.send();
 }
 
@@ -369,6 +377,7 @@ function startDownloader(retObj, tileList, name, downloadCache)
                     // processed
                     // This also starts the download again if needed
                     increaseCount();
+                    retObj._failedTiles.push(tileInfo);
                 });
             }
         });
@@ -386,7 +395,8 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
         numwritten: 0,
         numwriterequests: 0,
         numprocessed: 0, 
-        _numtotal: 0
+        _numtotal: 0,
+        _failedTiles: [],
     };
     
     // build a list of tiles to download
@@ -453,6 +463,8 @@ function downloadTiles(tilesToDownload, cutoffLevel)
 
         if (r.isdone && numWriting == 0)
             dlg.close();
+        console.log("Failed tiles:");
+        console.log(r._failedTiles);
     }
 }
 

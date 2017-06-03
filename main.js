@@ -289,6 +289,7 @@ var g_osmServers = [
 
 function startDownloader(retObj, tileList, name, downloadCache)
 {
+    var maxErrCount = 3;
     var numStored = 0;
     var numStoreRequested = 0;
 
@@ -357,11 +358,11 @@ function startDownloader(retObj, tileList, name, downloadCache)
                 var url = server + tileInfo.Z + "/" + tileInfo.X + "/" + tileInfo.Y + ".png";
                 var startTime = performance.now();
 
-                console.log("" + name + ": " + url);
+                //console.log("" + name + ": " + url);
                 XHRBlobDownload(url, function(blob)
                 {
                     var elapsed = performance.now() - startTime;
-                    console.log("" + name + ": downloaded in " + (elapsed/1000) + " seconds");
+                    //console.log("" + name + ": downloaded in " + (elapsed/1000) + " seconds");
                     increaseCount();
                     //storeCachedTile(tileInfo.Z, tileInfo.X, tileInfo.Y, xhr.response);
                     downloadCache.push({ 
@@ -373,11 +374,23 @@ function startDownloader(retObj, tileList, name, downloadCache)
                     checkSyncDownloadCache();
                 }, function(errMsg, errEvt)
                 {
-                    // still increase the count, so that we know when all tiles are
-                    // processed
-                    // This also starts the download again if needed
-                    increaseCount();
-                    retObj._failedTiles.push(tileInfo);
+                    console.log("Error in XHRBlobDownload: " + errMsg);
+
+                    tileInfo.errCount++;
+                    if (tileInfo.errCount >= maxErrCount)
+                    {
+                        console.log("Error count exceeded for this tile");
+                        // still increase the count, so that we know when all tiles are
+                        // processed
+                        // This also starts the download again if needed
+                        increaseCount();
+                        retObj.failedTiles.push(tileInfo);
+                    }
+                    else // retry, add it to the tile list again
+                    {
+                        console.log("Retrying this tile");
+                        tileList.push(tileInfo);
+                    }
                 });
             }
         });
@@ -396,7 +409,7 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
         numwriterequests: 0,
         numprocessed: 0, 
         _numtotal: 0,
-        _failedTiles: [],
+        failedTiles: [],
     };
     
     // build a list of tiles to download
@@ -408,8 +421,17 @@ function downloadTilesInternal(tilesToDownload, cutoffLevel)
         var yPosList = Object.keys(tilesToDownload[z].Y);
 
         for (var i = 0 ; i < yPosList.length ; i++)
+        {
             for (var j = 0 ; j < xPosList.length ; j++)
-                tileList.push({ Z: z, X: xPosList[j], Y:yPosList[i]})
+            {
+                tileList.push({ 
+                    Z: z, 
+                    X: xPosList[j], 
+                    Y:yPosList[i],
+                    errCount: 0,
+                })
+            }
+        }
     }
     ret._numtotal = tileList.length;
 
@@ -433,7 +455,7 @@ function downloadTiles(tilesToDownload, cutoffLevel)
     {
         input: [ 
             "<h3>Downloading and storing tiles</h3>",
-            "<p>Downloaded <span id='spntilesdownloaded'>0</span>/" + numTiles + " tiles</p>",
+            "<p>Processing <span id='spntilesdownloaded'>0</span>/" + numTiles + "</p>",
             "<p>Writing <span id='spnnumtowrite'>0</span> tiles to database</p>",
         ].join("\n"),
         buttons : [{
@@ -448,7 +470,7 @@ function downloadTiles(tilesToDownload, cutoffLevel)
         }],
         callback: function(data)
         {
-            console.log(data);
+            //console.log(data);
             r.cancelled = true;
         }
     });
@@ -462,9 +484,19 @@ function downloadTiles(tilesToDownload, cutoffLevel)
         $("#spnnumtowrite").text("" + numWriting);
 
         if (r.isdone && numWriting == 0)
+        {
             dlg.close();
-        console.log("Failed tiles:");
-        console.log(r._failedTiles);
+
+            if (r.failedTiles.length > 0)
+            {
+                setTimeout(function()
+                {
+                    vex.dialog.alert("Warning: unable to download " + r.failedTiles.length + " tiles");
+                }, 0);
+            }
+        }
+        //console.log("Failed tiles:");
+        //console.log(r.failedTiles);
     }
 }
 

@@ -143,6 +143,11 @@ var DB = function()
         queueOperation({ type: m_setOperation, callback: callback, value: blob, key: key });
     }
 
+    this.deleteDatabase = function()
+    {
+        indexedDB.deleteDatabase(m_dbName);
+    }
+
     var constructor = function()
     {
         var r = indexedDB.open(m_dbName, m_dbVersion);

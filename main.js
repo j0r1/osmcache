@@ -827,6 +827,40 @@ function tileLoadFunction(imageTile, src)
     });
 }
 
+function clearDatabase()
+{
+    vex.dialog.confirm({
+        message: "Clear tile cache and reload?",
+        callback: function(data)
+        {
+            if (!data)
+                return;
+            
+            vex.dialog.confirm({
+                message: "Are you sure?",
+                callback: function(data)
+                {
+                    if (!data)
+                        return;
+
+                    vex.dialog.confirm({
+                        message: "Are you really, really sure?",
+                        callback: function(data)
+                        {
+                            if (!data)
+                                return;
+
+                            g_db.deleteDatabase();
+                            window.onbeforeunload = null; // don't ask for further confirmation
+                            location.reload();
+                        }
+                    });
+                }
+            });
+        }
+    });
+}
+
 function onMenu()
 {
     setTimeout(function()

@@ -795,6 +795,19 @@ function setImageTileFromBlob(imageTile, blob)
     imageTile.getImage().src = imgURL;
 }
 
+var tilesToReload = { };
+
+setInterval(function()
+{
+    for (var idxStr in tilesToReload)
+    {
+        var tile  = tilesToReload[idxStr];
+        tile.missCounted = true;
+        //tile.load();
+        tile.state = 1; // TODO: this is not very portable, seems to be something undocumented
+    }
+}, 15000);
+
 function tileLoadFunction(imageTile, src)
 {
     var parts = src.split("//")[1].split("/");
@@ -803,6 +816,8 @@ function tileLoadFunction(imageTile, src)
     var x = parseInt(parts[3].split(".")[0]);
     //console.log("" + z + " " + y + " " + x);
 
+    var idxStr = "" + z +"_" + y + "_" + x;
+
     getCachedTile(z, y, x, function(blob)
     {
         if (blob)
@@ -810,17 +825,24 @@ function tileLoadFunction(imageTile, src)
             g_hit++;
 
             setImageTileFromBlob(imageTile, blob);
+            delete tilesToReload[idxStr]; // make sure we don't try to reload it again
         }
         else
         { 
-            g_miss++;
+            if (!imageTile.missCounted)
+                g_miss++;
 
-            XHRBlobDownload(src, function(blob)
-            //XHRBlobDownload("http://localhost:12345/" + src, function(blob)
+            var badSrc = "http://localhost:12345/" + src;
+            //XHRBlobDownload(src, function(blob)
+            XHRBlobDownload(badSrc, function(blob)
             {
                 //console.log("Downloaded " + src);
                 setImageTileFromBlob(imageTile, blob);
                 storeCachedTile(z, y, x, blob);
+            }, function()
+            {
+                imageTile.getImage().src = badSrc; // make sure it goes into an ERROR state
+                tilesToReload[idxStr] = imageTile;
             });
         }
         updateHitMiss();

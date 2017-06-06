@@ -6,7 +6,8 @@ var g_wakeLockEnabled = false;
 var g_maxLevel = 19;
 var g_maxAreaSize = 10000;
 
-var g_view = new ol.View({ center: [0, 0], zoom: 17 });
+var g_view = null;
+var g_osmSource = null;
 var g_map = null;
 var g_lastImmediateLonLat = null;
 var g_lastCenter = null;
@@ -23,6 +24,7 @@ var g_trailEnd = null;
 var g_trackLength = 0;
 
 var g_followEnabled = true;
+var g_useCacheOnly = false;
 
 g_trailFeature.setStyle(new ol.style.Style({
     stroke: new ol.style.Stroke({
@@ -472,6 +474,7 @@ function downloadTiles(tilesToDownload, cutoffLevel)
         {
             //console.log(data);
             r.cancelled = true;
+            g_osmSource.refresh();
         }
     });
 
@@ -795,19 +798,6 @@ function setImageTileFromBlob(imageTile, blob)
     imageTile.getImage().src = imgURL;
 }
 
-var tilesToReload = { };
-
-setInterval(function()
-{
-    for (var idxStr in tilesToReload)
-    {
-        var tile  = tilesToReload[idxStr];
-        tile.missCounted = true;
-        //tile.load();
-        tile.state = 1; // TODO: this is not very portable, seems to be something undocumented
-    }
-}, 15000);
-
 function tileLoadFunction(imageTile, src)
 {
     var parts = src.split("//")[1].split("/");
@@ -825,25 +815,30 @@ function tileLoadFunction(imageTile, src)
             g_hit++;
 
             setImageTileFromBlob(imageTile, blob);
-            delete tilesToReload[idxStr]; // make sure we don't try to reload it again
         }
         else
         { 
-            if (!imageTile.missCounted)
-                g_miss++;
+            g_miss++;
+            var errorUrl = "generateerror:" + src;
 
-            var badSrc = "http://localhost:12345/" + src;
-            //XHRBlobDownload(src, function(blob)
-            XHRBlobDownload(badSrc, function(blob)
+            if (g_useCacheOnly)
             {
-                //console.log("Downloaded " + src);
-                setImageTileFromBlob(imageTile, blob);
-                storeCachedTile(z, y, x, blob);
-            }, function()
+                imageTile.getImage().src = errorUrl; // make sure that it goes in ERROR state
+            }
+            else
             {
-                imageTile.getImage().src = badSrc; // make sure it goes into an ERROR state
-                tilesToReload[idxStr] = imageTile;
-            });
+                XHRBlobDownload(src, function(blob)
+                {
+                    //console.log("Downloaded " + src);
+                    setImageTileFromBlob(imageTile, blob);
+                    storeCachedTile(z, y, x, blob);
+                }, function()
+                {
+                    // make sure it goes into an ERROR state, so that redisplaying will
+                    // attempt a reload
+                    imageTile.getImage().src = errorUrl; 
+                });
+            }
         }
         updateHitMiss();
     });
@@ -906,14 +901,17 @@ function main()
     {
         $("#initiallyhidden").show();
 
+        g_view = new ol.View({ center: [0, 0], zoom: 17 });
+        g_osmSource = new ol.source.OSM({tileLoadFunction:tileLoadFunction});
+
         g_map = new ol.Map({
-            layers: [ new ol.layer.Tile({ source: new ol.source.OSM({tileLoadFunction:tileLoadFunction}) }), 
+            layers: [ new ol.layer.Tile({ source: g_osmSource }), 
                       new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
                                                                                      g_trailFeature] }) })
             ],
             target: 'map',
             view: g_view,
-            renderer: 'webgl',
+            //renderer: 'webgl',
             loadTilesWhileAnimating: true,
             preload: 4,
             interactions: ol.interaction.defaults({doubleClickZoom :false}),
@@ -961,6 +959,17 @@ function toggleWakeLock()
     {
         alert("Error: " + e);
     }
+}
+
+function toggleCacheOnly()
+{
+    g_useCacheOnly = !g_useCacheOnly;
+    if (g_useCacheOnly)
+        $("#btncacheonly").text("Use only cached tiles").addClass("reddish");
+    else
+        $("#btncacheonly").text("Enable tile download").removeClass("reddish");
+
+    g_osmSource.refresh();
 }
 
 $(document).ready(main);

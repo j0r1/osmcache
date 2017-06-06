@@ -878,20 +878,35 @@ function clearDatabase()
     });
 }
 
-function onMenu()
-{
-    setTimeout(function()
-    {
-        $(".menu").hide("slow", "swing", function()
-        {
-            $("#menubutton").show("slow", "swing");
-        });
-    },15000);
+var g_menuTimer = null;
+var g_menuTimeout = 5000;
 
-    $("#menubutton").hide("slow", "swing", function()
+function hideMenu()
+{
+    $(".menu").hide("slow", "swing", function()
     {
-        $(".menu").show("slow", "swing");
+        $("#menubutton").show("slow", "swing");
     });
+}
+
+function onMenu(menuFunction)
+{
+    if (g_menuTimer !== null)
+        clearTimeout(g_menuTimer);
+
+    g_menuTimer = setTimeout(hideMenu, g_menuTimeout);
+
+    if (!menuFunction)
+    {
+        $("#menubutton").hide("slow", "swing", function()
+        {
+            $(".menu").show("slow", "swing");
+        });
+    }
+    else
+    {
+        menuFunction(); 
+    }
 }
 
 function main()
@@ -918,7 +933,7 @@ function main()
         });
 
         g_map.on('pointerdrag', disableFollow);
-        g_map.on('dblclick', function() { setTimeout(setTargetCoords, 1000); });
+        g_map.on('dblclick', function() { setTimeout(gotoCoords, 100); });
 
         var geo = new GEOLocation();
         geo.onPositionError = positionError;

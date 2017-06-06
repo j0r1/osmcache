@@ -28,11 +28,18 @@
         .dlg {
             width: 80%;
         }
+        table { 
+            border-collapse: separate;
+            border-spacing: 5;
+        }
+
         td { 
             cursor: pointer;
-            height: 40px;
+            height: 35px;
             width: 180px;
             border: 2px solid black;
+            border-radius: 15px;
+            padding: 5px;
             text-align: center;
             background-color: rgba(255,255,255,0.7);
             user-select: none;
@@ -50,14 +57,14 @@
             <div id="map"></div>
             <div id="controls">
                 <table>
-                    <tr class="menu"><td onclick="setTargetCoords()">Set target coords</td></tr>
-                    <tr class="menu"><td onclick="setProjection()">Project target coords</td></tr>
-                    <tr class="menu"><td onclick="gotoCoords()">Set center coords</td></tr>
-                    <tr class="menu"><td onclick="prefetchTiles()">Pre-fetch tiles</td</tr>
-                    <tr class="menu"><td onclick="enableFollow()">Enable following</td></tr>
-                    <tr class="menu"><td onclick="clearDatabase()">Clear cache &amp; reload</td></tr>
-                    <tr class="menu"><td onclick="toggleWakeLock()" id="btnwake">Enable wake lock</td></tr>
-                    <tr class="menu"><td onclick="toggleCacheOnly()" id="btncacheonly">Use only cached tiles</td></tr>
+                    <tr class="menu"><td onclick="onMenu(setTargetCoords)">Set target coords</td></tr>
+                    <tr class="menu"><td onclick="onMenu(setProjection)">Project target coords</td></tr>
+                    <tr class="menu"><td onclick="onMenu(gotoCoords)">Set center coords</td></tr>
+                    <tr class="menu"><td onclick="onMenu(prefetchTiles)">Pre-fetch tiles</td</tr>
+                    <tr class="menu"><td onclick="onMenu(enableFollow)">Enable following</td></tr>
+                    <tr class="menu"><td onclick="onMenu(clearDatabase)">Clear cache &amp; reload</td></tr>
+                    <tr class="menu"><td onclick="onMenu(toggleWakeLock)" id="btnwake">Enable wake lock</td></tr>
+                    <tr class="menu"><td onclick="onMenu(toggleCacheOnly)" id="btncacheonly">Use only cached tiles</td></tr>
                     <tr id="menubutton"><td onclick="onMenu()">Menu</td></tr>
                 </table>
                 <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>

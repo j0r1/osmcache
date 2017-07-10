@@ -759,7 +759,7 @@ function positionCallback(lon, lat)
 
 function positionError(errCode, errMsg)
 {
-    var msg = 'ERROR(' + errCode + '): ' + errMessage;
+    var msg = 'ERROR(' + errCode + '): ' + errMsg;
     console.warn(msg);
     alert(msg);
 }

@@ -26,6 +26,8 @@ var g_trackLength = 0;
 var g_followEnabled = true;
 var g_useCacheOnly = false;
 
+var g_geo = null;
+
 g_trailFeature.setStyle(new ol.style.Style({
     stroke: new ol.style.Stroke({
         color: "#0000AA",
@@ -761,7 +763,7 @@ function positionError(errCode, errMsg)
 {
     var msg = 'ERROR(' + errCode + '): ' + errMsg;
     console.warn(msg);
-    alert(msg);
+    vex.dialog.alert(msg);
 }
 
 var g_db = null;
@@ -909,6 +911,16 @@ function onMenu(menuFunction)
     }
 }
 
+function restartGeolocation()
+{
+    if (g_geo)
+        g_geo.destroy();
+
+    g_geo = new GEOLocation();
+    g_geo.onPositionError = positionError;
+    g_geo.onSmoothedPosition = positionCallback;
+}
+
 function main()
 {
     g_db = new DB();
@@ -935,15 +947,13 @@ function main()
         g_map.on('pointerdrag', disableFollow);
         g_map.on('dblclick', function() { setTimeout(gotoCoords, 100); });
 
-        var geo = new GEOLocation();
-        geo.onPositionError = positionError;
-        geo.onSmoothedPosition = positionCallback;
-        geo.onImmediatePosition = function(lon, lat)
+        restartGeolocation();
+        g_geo.onImmediatePosition = function(lon, lat)
         {
             // Use the first position immediately, for quicker view update
             positionCallback(lon, lat);
             // Then, disable this again
-            geo.onImmediatePosition = function() { };
+            g_geo.onImmediatePosition = function() { };
         }
     }
     g_db.onopenerror = function(evt)

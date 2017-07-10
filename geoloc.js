@@ -6,6 +6,9 @@ var GEOLocation = function()
     var m_avgCount = 10;
     var m_pos = [ ];
 
+    var m_watchId = null;
+    var m_timerId = null;
+
     this.onPositionError = function(errCode, errMsg) { }
     this.onSmoothedPosition = function(longitude, latitude) { }
     this.onImmediatePosition = function(longitude, latitude) { }
@@ -72,9 +75,23 @@ var GEOLocation = function()
             throw "Geolocation API not present";
 
         var options = { enableHighAccuracy: true };
-        navigator.geolocation.watchPosition(positionCallback, positionError, options);
+        m_watchId = navigator.geolocation.watchPosition(positionCallback, positionError, options);
 
-        setInterval(function() { positionUpdateCallback(); }, 1000);
+        m_timerId = setInterval(function() { positionUpdateCallback(); }, 1000);
+    }
+
+    this.destroy = function()
+    {
+        if (m_timerId != null)
+        {
+            clearInterval(m_timerId);
+            m_timerId = null;
+        }
+        if (m_watchId != null)
+        {
+            navigator.geolocation.clearWatch(m_watchId);
+            m_watchId = null;
+        }
     }
 
     construct();

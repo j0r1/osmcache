@@ -5,9 +5,11 @@ var GEOLocation = function()
     var m_prevPosTime = undefined;
     var m_avgCount = 10;
     var m_pos = [ ];
+    var m_GEOWebSocketURL = null;
 
     var m_watchId = null;
     var m_timerId = null;
+    var m_ws = null;
 
     this.onPositionError = function(errCode, errMsg) { }
     this.onSmoothedPosition = function(longitude, latitude) { }
@@ -71,11 +73,47 @@ var GEOLocation = function()
 
     var construct = function()
     {
-        if (!("geolocation" in navigator))
-            throw "Geolocation API not present";
+        if (location.hash)
+            m_GEOWebSocketURL = location.hash.substr(1);
 
-        var options = { enableHighAccuracy: true };
-        m_watchId = navigator.geolocation.watchPosition(positionCallback, positionError, options);
+        if (m_GEOWebSocketURL)
+        {
+            m_ws = new WebSocket(m_GEOWebSocketURL);
+            m_ws.addEventListener("open", function(evt)
+            {
+                console.log("Websocket open");
+            });
+            m_ws.addEventListener("message", function(evt)
+            {
+                var msg = evt.data;
+                console.log("Got message: " + msg);
+                var obj = JSON.parse(msg);
+
+                if (obj)
+                {
+                    positionCallback({ 
+                        "coords": { 
+                            "latitude": obj.latitude, 
+                            "longitude": obj.longitude,
+                            "accuracy": obj.accuracy,
+                        },
+                        "timestamp": obj.timestamp
+                    });
+                }
+            });
+            m_ws.addEventListener("error", function(evt)
+            {
+                console.log("Websocket error");
+            });
+        }
+        else
+        {
+            if (!("geolocation" in navigator))
+                throw "Geolocation API not present";
+
+            var options = { enableHighAccuracy: true };
+            m_watchId = navigator.geolocation.watchPosition(positionCallback, positionError, options);
+        }
 
         m_timerId = setInterval(function() { positionUpdateCallback(); }, 1000);
     }
@@ -91,6 +129,11 @@ var GEOLocation = function()
         {
             navigator.geolocation.clearWatch(m_watchId);
             m_watchId = null;
+        }
+        if (m_ws)
+        {
+            try { m_ws.close(); } catch(e) { }
+            m_ws = null;
         }
     }
 

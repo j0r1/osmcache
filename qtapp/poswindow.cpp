@@ -1,17 +1,23 @@
 #include "poswindow.h"
 #include <QGeoPositionInfoSource>
 #include <QWebSocketServer>
+#include <QWebSocket>
 #include <QTimer>
 #include <QDebug>
 #include <QQuickItem>
+#include <QApplication>
+#include <QDateTime>
 #include <iostream>
 
 using namespace std;
 
 PosWindow::PosWindow()
 {
-	//setSource(QUrl("qrc:/qosmcache.qml"));
+#ifdef __ANDROID__
+	setSource(QUrl("qrc:/qosmcache.qml"));
+#else
 	setSource(QUrl::fromLocalFile("qosmcache.qml"));
+#endif
 	setResizeMode(QQuickView::SizeRootObjectToView);
 	show();
 
@@ -21,18 +27,44 @@ PosWindow::PosWindow()
 	QObject::connect(pTimer, &QTimer::timeout, this, &PosWindow::onInitialTimeout);
 	pTimer->start();
 
+#ifdef __ANDROID__
+	m_lastPositionString = "null";
+#else
+	m_lastPositionString = "{ \"latitude\": 55, \"longitude\": 12, \"accuracy\": 1, \"timestamp\":" 
+		                   + QString::number(QDateTime::currentDateTime().toMSecsSinceEpoch()) + "}";
+#endif
+
+	QString webSocketUrl = "ws://localhost:";
 	QWebSocketServer *pSrv = new QWebSocketServer("QPosServer", QWebSocketServer::NonSecureMode, this);
+	if (!pSrv->listen(QHostAddress::LocalHost))
+		log("Unable to create websocket server");
+	else
+	{
+		webSocketUrl += QString::number(pSrv->serverPort());
+		log("Websocket server URL is " + webSocketUrl);
+	}
+
+	QObject::connect(pSrv, SIGNAL(newConnection()), this, SLOT(onNewConnection()));
 	QObject::connect(this, SIGNAL(setHtml(QVariant,QVariant)), 
 			         rootObject()->findChild<QObject*>("webview"), SLOT(onLoadHtml(QVariant,QVariant)));
+	QObject::connect(this, SIGNAL(setText(QVariant)), 
+			         rootObject()->findChild<QObject*>("message"), SLOT(onSetText(QVariant)));
 
 	QFile f(":/index_allinone.html");
 	if (f.open(QIODevice::ReadOnly))
 	{
 		QString html(f.readAll());
+
+		html.replace("var m_GEOWebSocketURL = null;", "var m_GEOWebSocketURL = '" + webSocketUrl + "'");
 		emit setHtml(html, "http://localhost");
 	}
 	else
 		log("Couldn't open html");
+
+	QTimer *pPosUpdateTimer = new QTimer(this);
+	pPosUpdateTimer->setInterval(1000);
+	QObject::connect(pPosUpdateTimer, &QTimer::timeout, this, &PosWindow::onSendPositionString);
+	pPosUpdateTimer->start();
 }
 
 PosWindow::~PosWindow()
@@ -63,6 +95,12 @@ void PosWindow::onPosUpdate(const QGeoPositionInfo &update)
 	QString msg = coord.toString() + " (" + t.toString() + ")";
 	log("Position: " + msg);
 	//m_pPosEdit->setText(msg);
+
+	m_lastPositionString = "{ \"latitude\": " + QString::number(coord.latitude()) + 
+		                   ", \"longitude\": " + QString::number(coord.longitude()) + 
+						   ", \"accuracy\": 1" +
+						   ", \"timestamp\": " + QString::number(t.toMSecsSinceEpoch()) + 
+						   "}";
 }
 
 void PosWindow::onPosError(QGeoPositionInfoSource::Error positioningError)
@@ -88,6 +126,8 @@ void PosWindow::log(const QString &str0)
 
 	str.replace("\r", "");
 	qDebug() << str;
+
+	emit setText(str);
 
 	/*
 	bool important = false;
@@ -117,5 +157,47 @@ void PosWindow::log(const QString &str0)
 
 void PosWindow::onNewConnection()
 {
+	QWebSocketServer *pSrv = qobject_cast<QWebSocketServer*>(sender());
+	if (!pSrv)
+		return;
+
+	QWebSocket *pSocket = pSrv->nextPendingConnection();
+	if (!pSocket)
+		return;
+
+	log("New connection");
+	m_connections.push_back(pSocket);
+	QObject::connect(pSocket, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
+}
+
+void PosWindow::onDisconnected()
+{
+	QWebSocket *pSock = qobject_cast<QWebSocket *>(sender());
+	if (!pSock)
+		return;
+
+	int idx = -1;
+	for (int i = 0 ; i < m_connections.size() ; i++)
+	{
+		if (m_connections[i] == pSock)
+		{
+			idx = i;
+			break;
+		}
+	}
+
+	if (idx >= 0)
+	{
+		log("Removing closed connection");
+		m_connections.removeAt(idx);
+	}
+	else
+		log("Disconnected socket not found in list");
+}
+
+void PosWindow::onSendPositionString()
+{
+	for (int i = 0 ; i < m_connections.size() ; i++)
+		m_connections[i]->sendTextMessage(m_lastPositionString);
 }
 

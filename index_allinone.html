@@ -3412,6 +3412,8 @@ var GEOLocation = function()
     var m_watchId = null;
     var m_timerId = null;
     var m_ws = null;
+    var m_wsTimer = null;
+    var m_destroying = false;
 
     this.onPositionError = function(errCode, errMsg) { }
     this.onSmoothedPosition = function(longitude, latitude) { }
@@ -3473,6 +3475,50 @@ var GEOLocation = function()
             averagePositions();
     }
 
+    var websocketStart = function()
+    {
+        if (m_destroying)
+            return;
+        m_wsTimer = null;
+
+        console.log("Trying to open websocket connection to " + m_GEOWebSocketURL);
+        m_ws = new WebSocket(m_GEOWebSocketURL);
+        m_ws.addEventListener("open", function(evt)
+        {
+            console.log("Websocket open");
+        });
+        m_ws.addEventListener("message", function(evt)
+        {
+            var msg = evt.data;
+            console.log("Got message: " + msg);
+            var obj = JSON.parse(msg);
+
+            if (obj)
+            {
+                positionCallback({ 
+                    "coords": { 
+                        "latitude": obj.latitude, 
+                        "longitude": obj.longitude,
+                        "accuracy": obj.accuracy,
+                    },
+                    "timestamp": obj.timestamp
+                });
+            }
+        });
+        m_ws.addEventListener("error", function(evt)
+        {
+            console.log("Websocket error");
+            if (m_wsTimer == null)
+                m_wsTimer = setTimeout(websocketStart, 5000);
+        });
+        m_ws.addEventListener("close", function(evt)
+        {
+            console.log("Websocket closed");
+            if (m_wsTimer == null)
+                m_wsTimer = setTimeout(websocketStart, 5000);
+        });
+    }
+
     var construct = function()
     {
         if (location.hash)
@@ -3480,33 +3526,7 @@ var GEOLocation = function()
 
         if (m_GEOWebSocketURL)
         {
-            m_ws = new WebSocket(m_GEOWebSocketURL);
-            m_ws.addEventListener("open", function(evt)
-            {
-                console.log("Websocket open");
-            });
-            m_ws.addEventListener("message", function(evt)
-            {
-                var msg = evt.data;
-                console.log("Got message: " + msg);
-                var obj = JSON.parse(msg);
-
-                if (obj)
-                {
-                    positionCallback({ 
-                        "coords": { 
-                            "latitude": obj.latitude, 
-                            "longitude": obj.longitude,
-                            "accuracy": obj.accuracy,
-                        },
-                        "timestamp": obj.timestamp
-                    });
-                }
-            });
-            m_ws.addEventListener("error", function(evt)
-            {
-                console.log("Websocket error");
-            });
+            m_wsTimer = setTimeout(websocketStart, 5000);
         }
         else
         {
@@ -3522,10 +3542,16 @@ var GEOLocation = function()
 
     this.destroy = function()
     {
+        m_destroying = true;
         if (m_timerId != null)
         {
             clearInterval(m_timerId);
             m_timerId = null;
+        }
+        if (m_wsTimer != null)
+        {
+            clearTimeout(m_wsTimer);
+            m_wsTimer = null;
         }
         if (m_watchId != null)
         {

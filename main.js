@@ -990,9 +990,9 @@ function toggleCacheOnly()
 {
     g_useCacheOnly = !g_useCacheOnly;
     if (g_useCacheOnly)
-        $("#btncacheonly").text("Use only cached tiles").addClass("reddish");
+        $("#btncacheonly").text("Enable tile download").addClass("reddish");
     else
-        $("#btncacheonly").text("Enable tile download").removeClass("reddish");
+        $("#btncacheonly").text("Use only cached tiles").removeClass("reddish");
 
     g_osmSource.refresh();
 }

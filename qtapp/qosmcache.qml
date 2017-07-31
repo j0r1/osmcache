@@ -26,7 +26,7 @@ Rectangle {
 		x:0
 		y: page.height-message.height
 		width: page.width
-		height: 40
+		height: 0
 
 		function onSetText(s)
 		{

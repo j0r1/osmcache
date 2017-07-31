@@ -23,7 +23,9 @@ private slots:
 	void onSendPositionString();
 private:
 	void scheduleGeoLocStart(int millisec);
+	void setPositionMessage(const QString &str);
 
 	QList<QWebSocket *> m_connections;
+	QList<QString> m_positionMessages;
 	QString m_lastPositionString;
 };

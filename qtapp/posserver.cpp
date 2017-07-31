@@ -16,10 +16,10 @@ PosServer::PosServer()
 	scheduleGeoLocStart(0);
 
 #ifdef __ANDROID__
-	m_lastPositionString = "null";
+	setPositionMessage("null");
 #else
-	m_lastPositionString = "{ \"latitude\": 55, \"longitude\": 12, \"accuracy\": 1, \"timestamp\":" 
-		                   + QString::number(QDateTime::currentDateTime().toMSecsSinceEpoch()) + "}";
+	setPositionMessage("{ \"latitude\": 55, \"longitude\": 12, \"accuracy\": 1, \"timestamp\":" 
+		                   + QString::number(QDateTime::currentDateTime().toMSecsSinceEpoch()) + "}");
 #endif
 
 	QString webSocketUrl = "ws://localhost:";
@@ -76,11 +76,11 @@ void PosServer::onPosUpdate(const QGeoPositionInfo &update)
 	log("Position: " + msg);
 	//m_pPosEdit->setText(msg);
 
-	m_lastPositionString = "{ \"latitude\": " + QString::number(coord.latitude()) + 
-		                   ", \"longitude\": " + QString::number(coord.longitude()) + 
-						   ", \"accuracy\": 1" +
-						   ", \"timestamp\": " + QString::number(t.toMSecsSinceEpoch()) + 
-						   "}";
+	setPositionMessage("{ \"latitude\": " + QString::number(coord.latitude()) + 
+		               ", \"longitude\": " + QString::number(coord.longitude()) + 
+					   ", \"accuracy\": 1" +
+					   ", \"timestamp\": " + QString::number(t.toMSecsSinceEpoch()) + 
+					   "}");
 }
 
 void PosServer::onPosError(QGeoPositionInfoSource::Error positioningError)
@@ -163,8 +163,26 @@ void PosServer::onDisconnected()
 
 void PosServer::onSendPositionString()
 {
-	for (int i = 0 ; i < m_connections.size() ; i++)
-		m_connections[i]->sendTextMessage(m_lastPositionString);
+	if (m_connections.size() == 0) 
+		return; // don't clear the cached positions yet, keep them until there's a new connection
+
+	if (m_positionMessages.size() > 0)
+	{
+		for (QString &s : m_positionMessages)
+		{
+			for (int i = 0 ; i < m_connections.size() ; i++)
+			{
+				m_connections[i]->sendTextMessage(s);
+				NetLog::log("Sending " + s);
+			}
+		}
+		m_positionMessages.clear();
+	}
+	else
+	{
+		for (int i = 0 ; i < m_connections.size() ; i++)
+			m_connections[i]->sendTextMessage(m_lastPositionString);
+	}
 }
 
 void PosServer::scheduleGeoLocStart(int millisec)
@@ -174,5 +192,11 @@ void PosServer::scheduleGeoLocStart(int millisec)
 	pTimer->setInterval(millisec);
 	QObject::connect(pTimer, &QTimer::timeout, this, &PosServer::onStartGeoLoc);
 	pTimer->start();
+}
+
+void PosServer::setPositionMessage(const QString &str)
+{
+	m_lastPositionString = str;
+	m_positionMessages.push_back(str);
 }
 

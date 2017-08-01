@@ -8,12 +8,15 @@
 #include <QApplication>
 #include <QDateTime>
 #include <iostream>
+#ifdef __ANDROID__
+#include <QAndroidJniObject>
+#endif
 
 using namespace std;
 
 PosServer::PosServer()
 {
-	scheduleGeoLocStart(0);
+	scheduleGeoLocStart(1000);
 
 #ifdef __ANDROID__
 	setPositionMessage("null");
@@ -46,6 +49,10 @@ PosServer::~PosServer()
 
 void PosServer::onStartGeoLoc()
 {
+#ifdef __ANDROID__
+	QAndroidJniObject::callStaticMethod<void>("org/qtproject/qosmcache/OSMCacheService", "vibrate");
+#endif
+
 	QTimer *pTimer = qobject_cast<QTimer *>(sender());
 	if (pTimer)
 		pTimer->deleteLater();

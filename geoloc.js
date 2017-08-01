@@ -191,5 +191,18 @@ var GEOLocation = function()
         }
     }
 
+    this.clearTarget = function()
+    {
+        if (m_ws != null)
+            m_ws.send("CLEARTARGET");
+    }
+
+    this.setTarget = function(lon, lat)
+    {
+        var obj = { "longitude": lon, "latitude": lat };
+        if (m_ws != null)
+            m_ws.send(JSON.stringify(obj));
+    }
+
     construct();
 }

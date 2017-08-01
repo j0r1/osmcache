@@ -3593,6 +3593,19 @@ var GEOLocation = function()
         }
     }
 
+    this.clearTarget = function()
+    {
+        if (m_ws != null)
+            m_ws.send("CLEARTARGET");
+    }
+
+    this.setTarget = function(lon, lat)
+    {
+        var obj = { "longitude": lon, "latitude": lat };
+        if (m_ws != null)
+            m_ws.send(JSON.stringify(obj));
+    }
+
     construct();
 }
 
@@ -3943,6 +3956,7 @@ function setProjection()
                         var dlon = (dx/(rEarth*Math.cos(lat*Math.PI/180.0)))*(180.0/Math.PI);
 
                         g_trailEnd = [ lon+dlon, lat+dlat ];
+                        g_geo.setTarget(g_trailEnd[0], g_trailEnd[1]);
 
                         if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
                             setTimeout(function() { positionCallback(g_lastImmediateLonLat[0], g_lastImmediateLonLat[1]); }, 0);
@@ -3958,9 +3972,15 @@ function setTargetCoords()
     getCoordsDialog('Enter target latitude/longitude', function(lat, lon)
     {
         if (lat === undefined && lon === undefined)
+        {
             g_trailEnd = null;
+            g_geo.clearTarget();
+        }
         else if (lat !== undefined && lon !== undefined)
+        {
             g_trailEnd = [ lon, lat ];
+            g_geo.setTarget(g_trailEnd[0], g_trailEnd[1]);
+        }
 
         if (g_lastImmediateLonLat) // call positionCallback with last received coords again, to update view
             setTimeout(function() { positionCallback(g_lastImmediateLonLat[0], g_lastImmediateLonLat[1]); }, 0);

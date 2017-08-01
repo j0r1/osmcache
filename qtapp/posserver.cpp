@@ -7,6 +7,8 @@
 #include <QDebug>
 #include <QApplication>
 #include <QDateTime>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <iostream>
 #include <chrono>
 #ifdef __ANDROID__
@@ -55,10 +57,6 @@ PosServer::~PosServer()
 
 void PosServer::onStartGeoLoc()
 {
-#ifdef __ANDROID__
-	QAndroidJniObject::callStaticMethod<void>("org/qtproject/qosmcache/OSMCacheService", "vibrate");
-#endif
-
 	QTimer *pTimer = qobject_cast<QTimer *>(sender());
 	if (pTimer)
 		pTimer->deleteLater();
@@ -94,6 +92,18 @@ void PosServer::onPosUpdate(const QGeoPositionInfo &update)
 					   ", \"accuracy\": 1" +
 					   ", \"timestamp\": " + QString::number(t.toMSecsSinceEpoch()) + 
 					   "}");
+
+	if (m_target.isValid())
+	{
+		if (m_target.distanceTo(coord) < 20.0) // TODO: what's a good value here?
+		{
+			m_target = QGeoCoordinate(); // clear the target
+#ifdef __ANDROID__
+			QAndroidJniObject::callStaticMethod<void>("org/qtproject/qosmcache/OSMCacheService", "vibrate");
+#endif
+			log("Within range of target!");
+		}
+	}
 }
 
 void PosServer::onPosError(QGeoPositionInfoSource::Error positioningError)
@@ -246,6 +256,26 @@ void PosServer::onWebsocketMessage(const QString &msg)
 
 	if (idx >= 0)
 		m_connections[idx]->setLastReceiveTime(getNow());
+
+	if (msg == "PING")
+	{
+		// nothing to do
+	}
+	else if (msg == "CLEARTARGET")
+	{
+		m_target = QGeoCoordinate();
+	}
+	else // assume it's a target position
+	{
+		QJsonObject obj;
+		QJsonDocument doc = QJsonDocument::fromJson(msg.toUtf8());
+
+		// check validity of the document
+		if(!doc.isNull() && doc.isObject())
+			obj = doc.object();        
+
+		m_target = QGeoCoordinate(obj["latitude"].toDouble(), obj["longitude"].toDouble());
+	}
 }
 
 void PosServer::onWebsocketTimeoutCheck()

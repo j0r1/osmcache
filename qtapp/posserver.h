@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QGeoPositionInfoSource>
+#include <QGeoCoordinate>
 #include <QList>
 
 class QWebSocket;
@@ -43,4 +44,6 @@ private:
 	QList<WebSocketAndTime *> m_connections;
 	QList<QString> m_positionMessages;
 	QString m_lastPositionString;
+
+	QGeoCoordinate m_target;
 };

@@ -3413,6 +3413,7 @@ var GEOLocation = function()
     var m_timerId = null;
     var m_ws = null;
     var m_wsTimer = null;
+    var m_wsPingTimer = null;
     var m_destroying = false;
 
     this.onPositionError = function(errCode, errMsg) { }
@@ -3475,6 +3476,20 @@ var GEOLocation = function()
             averagePositions();
     }
 
+    var webSocketPingAndCheck = function()
+    {
+        if (m_ws == null)
+            return;
+
+        try { m_ws.send("PING"); } catch(e) { }
+        
+        var now = Date.now();
+        if (now - m_ws.geoLastReceiveTime > 5000) // haven't heard from the server in 5 seconds, assume something is wrong
+        {
+            try { m_ws.close(); } catch(e) { } // should generate a close event after which we'll restart
+        }
+    }
+
     var websocketStart = function()
     {
         if (m_destroying)
@@ -3483,6 +3498,11 @@ var GEOLocation = function()
 
         console.log("Trying to open websocket connection to " + m_GEOWebSocketURL);
         m_ws = new WebSocket(m_GEOWebSocketURL);
+        m_ws.geoLastReceiveTime = Date.now();
+
+        if (m_wsPingTimer == null)
+            m_wsPingTimer = setInterval(webSocketPingAndCheck, 1000);
+
         m_ws.addEventListener("open", function(evt)
         {
             console.log("Websocket open");
@@ -3495,6 +3515,7 @@ var GEOLocation = function()
 
             if (obj)
             {
+                m_ws.geoLastReceiveTime = Date.now();
                 positionCallback({ 
                     "coords": { 
                         "latitude": obj.latitude, 
@@ -3510,12 +3531,14 @@ var GEOLocation = function()
             console.log("Websocket error");
             if (m_wsTimer == null)
                 m_wsTimer = setTimeout(websocketStart, 5000);
+            m_ws = null;
         });
         m_ws.addEventListener("close", function(evt)
         {
             console.log("Websocket closed");
             if (m_wsTimer == null)
                 m_wsTimer = setTimeout(websocketStart, 5000);
+            m_ws = null;
         });
     }
 
@@ -3552,6 +3575,11 @@ var GEOLocation = function()
         {
             clearTimeout(m_wsTimer);
             m_wsTimer = null;
+        }
+        if (m_wsPingTimer != null)
+        {
+            clearInterval(m_wsPingTimer);
+            m_wsPingTimer = null;
         }
         if (m_watchId != null)
         {

@@ -1,5 +1,7 @@
 vex.defaultOptions.className = 'vex-theme-top';
 
+var g_showAttrib = false;
+
 var rEarth = 6378137;
 var g_noSleep = new NoSleep();
 var g_wakeLockEnabled = false;
@@ -938,7 +940,7 @@ function main()
         g_view = new ol.View({ center: [0, 0], zoom: 17 });
         g_osmSource = new ol.source.OSM({tileLoadFunction:tileLoadFunction});
 
-        g_map = new ol.Map({
+        var mapSettings = {
             layers: [ new ol.layer.Tile({ source: g_osmSource }), 
                       new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
                                                                                      g_trailFeature] }) })
@@ -949,7 +951,12 @@ function main()
             loadTilesWhileAnimating: true,
             preload: 4,
             interactions: ol.interaction.defaults({doubleClickZoom :false}),
-        });
+        };
+
+        if (!g_showAttrib)
+            mapSettings["controls"] = [ new ol.control.Zoom(), new ol.control.Rotate() ];
+
+        g_map = new ol.Map(mapSettings);
 
         g_map.on('pointerdrag', disableFollow);
         g_map.on('dblclick', function() { setTimeout(gotoCoords, 100); });

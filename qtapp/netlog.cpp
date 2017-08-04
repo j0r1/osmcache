@@ -3,6 +3,7 @@
 
 NetLog *NetLog::s_pInst = nullptr;
 
+#ifndef QT_NO_DEBUG
 NetLog::NetLog()
 {
 	m_connected = false;
@@ -44,3 +45,11 @@ void NetLog::onConnected()
 {
 	m_connected = true;
 }
+#else
+NetLog::NetLog() { }
+NetLog::~NetLog() { }
+void NetLog::log(const QString &msg) { }
+void NetLog::logInternal(const QString &msg) { }
+void NetLog::onConnected() { }
+#endif
+

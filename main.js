@@ -1,6 +1,6 @@
 vex.defaultOptions.className = 'vex-theme-top zoom';
 
-var g_showAttrib = false;
+var g_showAttrib = true;
 
 var rEarth = 6378137;
 var g_noSleep = new NoSleep();
@@ -933,6 +933,8 @@ function restartGeolocation()
 function setUIZoom(z)
 {
     $("#zoomstyle").html(".zoom { zoom: " + z + "; }");
+    if (g_db)
+        g_db.storeEntry("osmcache_zoomlevel", z);
 }
 
 function onCSSZoom()
@@ -948,8 +950,6 @@ function onCSSZoom()
                 return;
 
             var z = $("#inp_zoomlvl").val();
-            localStorage["osmcache_zoomlevel"] = z;
-
             setUIZoom(z);
         }
     });
@@ -957,9 +957,6 @@ function onCSSZoom()
 
 function main()
 {
-    if ("osmcache_zoomlevel" in localStorage)
-        setUIZoom(localStorage["osmcache_zoomlevel"]);
-
     g_db = new DB();
     g_db.onopen = function()
     {
@@ -997,6 +994,15 @@ function main()
             // Then, disable this again
             g_geo.onImmediatePosition = function() { };
         }
+
+        setTimeout(function()
+        {
+            g_db.getEntry("osmcache_zoomlevel", function(value)
+            {
+                if (value)
+                    setUIZoom(value);
+            });
+        }, 0);
     }
     g_db.onopenerror = function(evt)
     {

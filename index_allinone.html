@@ -3793,7 +3793,9 @@ var DB = function()
 
 </script>
 <script>
-vex.defaultOptions.className = 'vex-theme-top';
+vex.defaultOptions.className = 'vex-theme-top zoom';
+
+var g_showAttrib = true;
 
 var rEarth = 6378137;
 var g_noSleep = new NoSleep();
@@ -4672,8 +4674,10 @@ function clearDatabase()
                                 return;
 
                             g_db.deleteDatabase();
-                            window.onbeforeunload = null; // don't ask for further confirmation
-                            location.reload();
+                            //window.onbeforeunload = null; // don't ask for further confirmation
+                            //location.reload();
+                            
+                            vex.dialog.alert("You need to restart the application");
                         }
                     });
                 }
@@ -4723,6 +4727,31 @@ function restartGeolocation()
     g_geo.onSmoothedPosition = positionCallback;
 }
 
+function setUIZoom(z)
+{
+    $("#zoomstyle").html(".zoom { zoom: " + z + "; }");
+    if (g_db)
+        g_db.storeEntry("osmcache_zoomlevel", z);
+}
+
+function onCSSZoom()
+{
+    vex.dialog.open(
+    {
+        input: [
+            'UI Zoom level: <input id="inp_zoomlvl" type="number" size="2" step="0.01" min="0.5" max="2" value="1">',
+        ].join("\n"),
+        callback: function(data)
+        {
+            if (data === false)
+                return;
+
+            var z = $("#inp_zoomlvl").val();
+            setUIZoom(z);
+        }
+    });
+}
+
 function main()
 {
     g_db = new DB();
@@ -4733,7 +4762,7 @@ function main()
         g_view = new ol.View({ center: [0, 0], zoom: 17 });
         g_osmSource = new ol.source.OSM({tileLoadFunction:tileLoadFunction});
 
-        g_map = new ol.Map({
+        var mapSettings = {
             layers: [ new ol.layer.Tile({ source: g_osmSource }), 
                       new ol.layer.Vector({ source: new ol.source.Vector({features: [g_pathFeature, g_pointFeature,
                                                                                      g_trailFeature] }) })
@@ -4744,7 +4773,12 @@ function main()
             loadTilesWhileAnimating: true,
             preload: 4,
             interactions: ol.interaction.defaults({doubleClickZoom :false}),
-        });
+        };
+
+        if (!g_showAttrib)
+            mapSettings["controls"] = [ new ol.control.Zoom(), new ol.control.Rotate() ];
+
+        g_map = new ol.Map(mapSettings);
 
         g_map.on('pointerdrag', disableFollow);
         g_map.on('dblclick', function() { setTimeout(gotoCoords, 100); });
@@ -4757,6 +4791,15 @@ function main()
             // Then, disable this again
             g_geo.onImmediatePosition = function() { };
         }
+
+        setTimeout(function()
+        {
+            g_db.getEntry("osmcache_zoomlevel", function(value)
+            {
+                if (value)
+                    setUIZoom(value);
+            });
+        }, 0);
     }
     g_db.onopenerror = function(evt)
     {
@@ -4849,19 +4892,37 @@ window.onbeforeunload = function(e)
         </style>
     </head>
     <body>
+        <style id="zoomstyle">
+        .zoom {
+            zoom: 1.0;
+        }
+        </style>
         <div id="initiallyhidden" style="display:none;">
             <div id="map"></div>
-            <div id="controls">
+            <div id="controls" class="zoom">
                 <table>
-                    <tr class="menu"><td onclick="onMenu(setTargetCoords)">Set target coords</td></tr>
-                    <tr class="menu"><td onclick="onMenu(setProjection)">Project target coords</td></tr>
-                    <tr class="menu"><td onclick="onMenu(gotoCoords)">Set center coords</td></tr>
-                    <tr class="menu"><td onclick="onMenu(prefetchTiles)">Pre-fetch tiles</td</tr>
-                    <tr class="menu"><td onclick="onMenu(enableFollow)">Enable following</td></tr>
-                    <tr class="menu"><td onclick="onMenu(clearDatabase)">Clear cache &amp; reload</td></tr>
-                    <tr class="menu"><td onclick="onMenu(restartGeolocation)">Restart geolocation</td></tr>
-                    <tr class="menu"><td onclick="onMenu(toggleWakeLock)" id="btnwake">Enable wake lock</td></tr>
-                    <tr class="menu"><td onclick="onMenu(toggleCacheOnly)" id="btncacheonly">Use only cached tiles</td></tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(setTargetCoords)">Set target coords</td>
+                        <td onclick="onMenu(setProjection)">Project target coords</td>
+                    </tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(gotoCoords)">Set center coords</td>
+                        <td onclick="onMenu(enableFollow)">Recenter</td>
+                    </tr>
+                    <tr height="10px"></tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(prefetchTiles)">Pre-fetch tiles</td>
+                        <td onclick="onMenu(toggleCacheOnly)" id="btncacheonly">Use only cached tiles</td>
+                    </tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(clearDatabase)">Clear cache</td>
+                        <td onclick="onMenu(toggleWakeLock)" id="btnwake">Enable wake lock</td>
+                    </tr>
+                    <tr height="10px"></tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(onCSSZoom)">Set UI Zoom</td>
+                        <td onclick="onMenu(restartGeolocation)">Restart geolocation</td>
+                    </tr>
                     <tr id="menubutton"><td onclick="onMenu()">Menu</td></tr>
                 </table>
                 <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>

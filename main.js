@@ -879,8 +879,10 @@ function clearDatabase()
                                 return;
 
                             g_db.deleteDatabase();
-                            window.onbeforeunload = null; // don't ask for further confirmation
-                            location.reload();
+                            //window.onbeforeunload = null; // don't ask for further confirmation
+                            //location.reload();
+                            
+                            vex.dialog.alert("You need to restart the application");
                         }
                     });
                 }

@@ -35,6 +35,7 @@ PosWindow::PosWindow()
 		QString html(f.readAll());
 
 		html.replace("var m_GEOWebSocketURL = null;", "var m_GEOWebSocketURL = '" + webSocketUrl + "'");
+		html.replace("var g_showAttrib = true;", "var g_showAttrib = false;");
 		emit setHtml(html, "http://localhost");
 	}
 	else

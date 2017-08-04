@@ -1,4 +1,4 @@
-vex.defaultOptions.className = 'vex-theme-top';
+vex.defaultOptions.className = 'vex-theme-top zoom';
 
 var g_showAttrib = false;
 
@@ -930,8 +930,36 @@ function restartGeolocation()
     g_geo.onSmoothedPosition = positionCallback;
 }
 
+function setUIZoom(z)
+{
+    $("#zoomstyle").html(".zoom { zoom: " + z + "; }");
+}
+
+function onCSSZoom()
+{
+    vex.dialog.open(
+    {
+        input: [
+            'UI Zoom level: <input id="inp_zoomlvl" type="number" size="2" step="0.01" min="0.5" max="2" value="1">',
+        ].join("\n"),
+        callback: function(data)
+        {
+            if (data === false)
+                return;
+
+            var z = $("#inp_zoomlvl").val();
+            localStorage["osmcache_zoomlevel"] = z;
+
+            setUIZoom(z);
+        }
+    });
+}
+
 function main()
 {
+    if ("osmcache_zoomlevel" in localStorage)
+        setUIZoom(localStorage["osmcache_zoomlevel"]);
+
     g_db = new DB();
     g_db.onopen = function()
     {

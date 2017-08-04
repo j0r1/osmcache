@@ -53,19 +53,37 @@
         </style>
     </head>
     <body>
+        <style id="zoomstyle">
+        .zoom {
+            zoom: 1.0;
+        }
+        </style>
         <div id="initiallyhidden" style="display:none;">
             <div id="map"></div>
-            <div id="controls">
+            <div id="controls" class="zoom">
                 <table>
-                    <tr class="menu"><td onclick="onMenu(setTargetCoords)">Set target coords</td></tr>
-                    <tr class="menu"><td onclick="onMenu(setProjection)">Project target coords</td></tr>
-                    <tr class="menu"><td onclick="onMenu(gotoCoords)">Set center coords</td></tr>
-                    <tr class="menu"><td onclick="onMenu(prefetchTiles)">Pre-fetch tiles</td</tr>
-                    <tr class="menu"><td onclick="onMenu(enableFollow)">Enable following</td></tr>
-                    <tr class="menu"><td onclick="onMenu(clearDatabase)">Clear cache &amp; reload</td></tr>
-                    <tr class="menu"><td onclick="onMenu(restartGeolocation)">Restart geolocation</td></tr>
-                    <tr class="menu"><td onclick="onMenu(toggleWakeLock)" id="btnwake">Enable wake lock</td></tr>
-                    <tr class="menu"><td onclick="onMenu(toggleCacheOnly)" id="btncacheonly">Use only cached tiles</td></tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(setTargetCoords)">Set target coords</td>
+                        <td onclick="onMenu(setProjection)">Project target coords</td>
+                    </tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(gotoCoords)">Set center coords</td>
+                        <td onclick="onMenu(enableFollow)">Recenter</td>
+                    </tr>
+                    <tr height="10px"></tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(prefetchTiles)">Pre-fetch tiles</td>
+                        <td onclick="onMenu(toggleCacheOnly)" id="btncacheonly">Use only cached tiles</td>
+                    </tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(clearDatabase)">Clear cache &amp; reload</td>
+                        <td onclick="onMenu(toggleWakeLock)" id="btnwake">Enable wake lock</td>
+                    </tr>
+                    <tr height="10px"></tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(onCSSZoom)">Set UI Zoom</td>
+                        <td onclick="onMenu(restartGeolocation)">Restart geolocation</td>
+                    </tr>
                     <tr id="menubutton"><td onclick="onMenu()">Menu</td></tr>
                 </table>
                 <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>

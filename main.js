@@ -988,6 +988,11 @@ function main()
         g_map.on('pointerdrag', disableFollow);
         g_map.on('dblclick', function() { setTimeout(gotoCoords, 100); });
 
+        var dlg = vex.dialog.open({ 
+            input: "Waiting for first GPS position...",
+            buttons: [{ text: 'OK', type: 'submit', className: 'vex-dialog-button-primary' }],
+        });
+
         restartGeolocation();
         g_geo.onImmediatePosition = function(lon, lat)
         {
@@ -995,6 +1000,7 @@ function main()
             positionCallback(lon, lat);
             // Then, disable this again
             g_geo.onImmediatePosition = function() { };
+            dlg.close();
         }
 
         setTimeout(function()

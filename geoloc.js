@@ -14,6 +14,11 @@ var GEOLocation = function()
     var m_wsPingTimer = null;
     var m_destroying = false;
 
+    var m_wsPingCheckTimeout = 1000;
+    var m_wsInitialTimeout = 2000;
+    var m_wsRestartTimeout = 5000;
+    var m_wsConnCheckTimeout = 5000;
+
     this.onPositionError = function(errCode, errMsg) { }
     this.onSmoothedPosition = function(longitude, latitude) { }
     this.onImmediatePosition = function(longitude, latitude) { }
@@ -82,7 +87,7 @@ var GEOLocation = function()
         try { m_ws.send("PING"); } catch(e) { }
         
         var now = Date.now();
-        if (now - m_ws.geoLastReceiveTime > 5000) // haven't heard from the server in 5 seconds, assume something is wrong
+        if (now - m_ws.geoLastReceiveTime > m_wsConnCheckTimeout) // haven't heard from the server in 5 seconds, assume something is wrong
         {
             try { m_ws.close(); } catch(e) { } // should generate a close event after which we'll restart
         }
@@ -99,7 +104,7 @@ var GEOLocation = function()
         m_ws.geoLastReceiveTime = Date.now();
 
         if (m_wsPingTimer == null)
-            m_wsPingTimer = setInterval(webSocketPingAndCheck, 1000);
+            m_wsPingTimer = setInterval(webSocketPingAndCheck, m_wsPingCheckTimeout);
 
         m_ws.addEventListener("open", function(evt)
         {
@@ -128,14 +133,14 @@ var GEOLocation = function()
         {
             console.log("Websocket error");
             if (m_wsTimer == null)
-                m_wsTimer = setTimeout(websocketStart, 5000);
+                m_wsTimer = setTimeout(websocketStart, m_wsRestartTimeout);
             m_ws = null;
         });
         m_ws.addEventListener("close", function(evt)
         {
             console.log("Websocket closed");
             if (m_wsTimer == null)
-                m_wsTimer = setTimeout(websocketStart, 5000);
+                m_wsTimer = setTimeout(websocketStart, m_wsRestartTimeout);
             m_ws = null;
         });
     }
@@ -147,7 +152,7 @@ var GEOLocation = function()
 
         if (m_GEOWebSocketURL)
         {
-            m_wsTimer = setTimeout(websocketStart, 5000);
+            m_wsTimer = setTimeout(websocketStart, m_wsInitialTimeout);
         }
         else
         {

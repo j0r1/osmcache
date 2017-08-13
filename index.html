@@ -68,7 +68,7 @@
                     </tr>
                     <tr class="menu">
                         <td onclick="onMenu(gotoCoords)">Set center coords</td>
-                        <td onclick="onMenu(enableFollow)">Recenter</td>
+                        <td onclick="onMenu(enableFollow)" class="btnrecenter">Recenter</td>
                     </tr>
                     <tr height="10px"></tr>
                     <tr class="menu">
@@ -84,7 +84,10 @@
                         <td onclick="onMenu(onCSSZoom)">Set UI Zoom</td>
                         <td onclick="onMenu(restartGeolocation)">Restart geolocation</td>
                     </tr>
-                    <tr id="menubutton"><td onclick="onMenu()">Menu</td></tr>
+                    <tr id="menubutton">
+                        <td onclick="onMenu()">Menu</td>
+                        <td onclick="onMenu(enableFollow)" class="btnrecenter">Recenter</td>
+                    </tr>
                 </table>
                 <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>
                 <div>

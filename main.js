@@ -56,7 +56,7 @@ function gotoCoords()
         if (lat !== undefined && lon !== undefined)
         {
             g_view.setCenter(ol.proj.fromLonLat([lon, lat], g_view.getProjection().getCode()));
-            g_followEnabled = false;
+            disableFollow();
         }
     });
 }
@@ -675,11 +675,13 @@ function getCoordsDialog(title, newLatLonCallback)
 function disableFollow()
 {
     g_followEnabled = false;
+    $(".btnrecenter").fadeIn(g_menuFadeTime);
 }
 
 function enableFollow()
 {
     g_followEnabled = true;
+    $(".btnrecenter").fadeOut(g_menuFadeTime);
 
     var obj = { }
     
@@ -893,12 +895,13 @@ function clearDatabase()
 
 var g_menuTimer = null;
 var g_menuTimeout = 5000;
+var g_menuFadeTime = 300;
 
 function hideMenu()
 {
-    $(".menu").hide("slow", "swing", function()
+    $(".menu").fadeOut(g_menuFadeTime, function()
     {
-        $("#menubutton").show("slow", "swing");
+        $("#menubutton").fadeIn(g_menuFadeTime);
     });
 }
 
@@ -911,9 +914,9 @@ function onMenu(menuFunction)
 
     if (!menuFunction)
     {
-        $("#menubutton").hide("slow", "swing", function()
+        $("#menubutton").fadeOut(g_menuFadeTime, function()
         {
-            $(".menu").show("slow", "swing");
+            $(".menu").fadeIn(g_menuFadeTime);
         });
     }
     else
@@ -959,6 +962,8 @@ function onCSSZoom()
 
 function main()
 {
+    $(".btnrecenter").hide();
+
     g_db = new DB();
     g_db.onopen = function()
     {

@@ -3829,6 +3829,7 @@ var g_followEnabled = true;
 var g_useCacheOnly = false;
 
 var g_geo = null;
+var g_compassReading = null;
 
 g_trailFeature.setStyle(new ol.style.Style({
     stroke: new ol.style.Stroke({
@@ -4760,6 +4761,12 @@ function onCSSZoom()
     });
 }
 
+function showCompassReading()
+{
+    $("#compasswrapper").show();
+    $("#compass").text("" + g_compassReading);
+}
+
 function main()
 {
     $(".btnrecenter").hide();
@@ -4816,6 +4823,11 @@ function main()
                     setUIZoom(value);
             });
         }, 0);
+
+        if (g_compassReading != null)
+        {
+            setInterval(showCompassReading, 1000);
+        }
     }
     g_db.onopenerror = function(evt)
     {
@@ -4905,6 +4917,17 @@ window.onbeforeunload = function(e)
         .reddish {
             background-color: rgba(255,128,128,0.7);
         }
+        #compasswrapper {
+            text-align: center;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 100%;
+        }
+
+        #compass {
+            display: inline-block;
+        }
         </style>
     </head>
     <body>
@@ -4915,6 +4938,9 @@ window.onbeforeunload = function(e)
         </style>
         <div id="initiallyhidden" style="display:none;">
             <div id="map"></div>
+            <div id="compasswrapper">    
+                    <div id="compass" class="zoom">?</div>
+            </div>
             <div id="controls" class="zoom">
                 <table>
                     <tr class="menu">

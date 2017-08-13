@@ -29,6 +29,7 @@ var g_followEnabled = true;
 var g_useCacheOnly = false;
 
 var g_geo = null;
+var g_compassReading = null;
 
 g_trailFeature.setStyle(new ol.style.Style({
     stroke: new ol.style.Stroke({
@@ -960,6 +961,12 @@ function onCSSZoom()
     });
 }
 
+function showCompassReading()
+{
+    $("#compasswrapper").show();
+    $("#compass").text("" + g_compassReading);
+}
+
 function main()
 {
     $(".btnrecenter").hide();
@@ -1016,6 +1023,11 @@ function main()
                     setUIZoom(value);
             });
         }, 0);
+
+        if (g_compassReading != null)
+        {
+            setInterval(showCompassReading, 1000);
+        }
     }
     g_db.onopenerror = function(evt)
     {

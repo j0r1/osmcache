@@ -8,7 +8,7 @@ INCLUDEPATH += .
 
 CONFIG += c++11
 
-QT += widgets positioning websockets webview quick
+QT += widgets positioning websockets webview quick sensors
 android {
 	QT += androidextras
 }

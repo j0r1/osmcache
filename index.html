@@ -50,6 +50,17 @@
         .reddish {
             background-color: rgba(255,128,128,0.7);
         }
+        #compasswrapper {
+            text-align: center;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 100%;
+        }
+
+        #compass {
+            display: inline-block;
+        }
         </style>
     </head>
     <body>
@@ -60,6 +71,9 @@
         </style>
         <div id="initiallyhidden" style="display:none;">
             <div id="map"></div>
+            <div id="compasswrapper">    
+                    <div id="compass" class="zoom">?</div>
+            </div>
             <div id="controls" class="zoom">
                 <table>
                     <tr class="menu">

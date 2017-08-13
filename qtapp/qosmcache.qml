@@ -18,6 +18,10 @@ Rectangle {
 			//console.log(html);
 			webview.loadHtml(html, base)
 		}
+
+		function onRunJavaScript(code) {
+			webview.runJavaScript(code, function(r) { });
+		}
 	}
 
 	Text {

@@ -82,16 +82,21 @@ void PosServer::onPosUpdate(const QGeoPositionInfo &update)
 	//log("Got update");
 	auto coord = update.coordinate();
 	auto t = update.timestamp();
+	double accuracy = 1000000; // Something large as default
 
 	QString msg = coord.toString() + " (" + t.toString() + ")";
 	log("Position: " + msg);
 	//m_pPosEdit->setText(msg);
 
+	if (update.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
+		accuracy = update.attribute(QGeoPositionInfo::HorizontalAccuracy);
+
 	setPositionMessage("{ \"latitude\": " + QString::number(coord.latitude()) + 
 		               ", \"longitude\": " + QString::number(coord.longitude()) + 
-					   ", \"accuracy\": 1" +
+					   ", \"accuracy\": " + QString::number(accuracy) + 
 					   ", \"timestamp\": " + QString::number(t.toMSecsSinceEpoch()) + 
 					   "}");
+	//log("New coord info: " + m_lastPositionString);
 
 	if (m_target.isValid())
 	{

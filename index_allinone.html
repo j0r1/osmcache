@@ -3830,6 +3830,8 @@ var g_useCacheOnly = false;
 
 var g_geo = null;
 
+var g_startTime = Date.now()
+
 g_trailFeature.setStyle(new ol.style.Style({
     stroke: new ol.style.Stroke({
         color: "#0000AA",
@@ -4557,7 +4559,6 @@ function positionCallback(lon, lat)
             g_lastCenter = newCenter;
 
             g_trackLength += dist;
-            $("#spnlength").text("" + Math.round(g_trackLength));
         }
     }
     else
@@ -4760,6 +4761,51 @@ function onCSSZoom()
     });
 }
 
+function clearTrackInfo()
+{
+    vex.dialog.confirm({
+        message: "Clear track and timeing?",
+        callback: function(data)
+        {
+            if (!data)
+                return;
+
+            g_startTime = Date.now();
+            g_trackLength = 0;
+            g_lineString.setCoordinates([]);
+
+            $("#spntime").text("0");
+            $("#spnspeed").text("0");
+            $("#spnlength").text("0");
+        }
+    });
+}
+
+function updateTimeAndSpeed()
+{
+    var dt = Date.now() - g_startTime;
+
+    // For seconds
+    dt /= 1000; 
+
+    // speed in meters per second
+    var speed = g_trackLength/dt;
+    // convert to km
+    speed /= 1000.0;
+    // and to per hour
+    speed *= 3600;
+
+    // Convert dt to minutes
+    dt /= 60;
+    
+    dt = Math.floor(dt*10)/10;
+    speed = Math.floor(speed*10)/10;
+
+    $("#spntime").text("" + dt);
+    $("#spnspeed").text("" + speed);
+    $("#spnlength").text("" + Math.round(g_trackLength));
+}
+
 function main()
 {
     $(".btnrecenter").hide();
@@ -4816,6 +4862,8 @@ function main()
                     setUIZoom(value);
             });
         }, 0);
+
+        setInterval(updateTimeAndSpeed, 1000);
     }
     g_db.onopenerror = function(evt)
     {
@@ -4939,16 +4987,23 @@ window.onbeforeunload = function(e)
                         <td onclick="onMenu(onCSSZoom)">Set UI Zoom</td>
                         <td onclick="onMenu(restartGeolocation)">Restart geolocation</td>
                     </tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(clearTrackInfo)">Clear track &amp; timing</td>
+                    </tr>
                     <tr id="menubutton">
                         <td onclick="onMenu()">Menu</td>
                         <td onclick="onMenu(enableFollow)" class="btnrecenter">Recenter</td>
                     </tr>
                 </table>
                 <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>
-                <div>
+                <div style="display:none"> <!-- for debugging -->
                     H: <span id="spnhit">0</span> | 
                     M: <span id="spnmiss">0</span> |
-                    Track: <span id="spnlength">0</span> m
+                </div>
+                <div>
+                    T: <span id="spntime">0</span>min |
+                    L: <span id="spnlength">0</span>m |
+                    V: <span id="spnspeed">0</span>km/h
                 </div>
             </div>
         </div>

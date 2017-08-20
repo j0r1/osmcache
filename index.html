@@ -84,16 +84,23 @@
                         <td onclick="onMenu(onCSSZoom)">Set UI Zoom</td>
                         <td onclick="onMenu(restartGeolocation)">Restart geolocation</td>
                     </tr>
+                    <tr class="menu">
+                        <td onclick="onMenu(clearTrackInfo)">Clear track &amp; timing</td>
+                    </tr>
                     <tr id="menubutton">
                         <td onclick="onMenu()">Menu</td>
                         <td onclick="onMenu(enableFollow)" class="btnrecenter">Recenter</td>
                     </tr>
                 </table>
                 <div id="spndistwrap" style="display: none">Target distance: <span id="spndist">?</span> m</div>
-                <div>
+                <div style="display:none"> <!-- for debugging -->
                     H: <span id="spnhit">0</span> | 
                     M: <span id="spnmiss">0</span> |
-                    Track: <span id="spnlength">0</span> m
+                </div>
+                <div>
+                    T: <span id="spntime">0</span>min |
+                    L: <span id="spnlength">0</span>m |
+                    V: <span id="spnspeed">0</span>km/h
                 </div>
             </div>
         </div>

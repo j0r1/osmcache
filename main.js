@@ -30,6 +30,8 @@ var g_useCacheOnly = false;
 
 var g_geo = null;
 
+var g_startTime = Date.now()
+
 g_trailFeature.setStyle(new ol.style.Style({
     stroke: new ol.style.Stroke({
         color: "#0000AA",
@@ -757,7 +759,6 @@ function positionCallback(lon, lat)
             g_lastCenter = newCenter;
 
             g_trackLength += dist;
-            $("#spnlength").text("" + Math.round(g_trackLength));
         }
     }
     else
@@ -960,6 +961,51 @@ function onCSSZoom()
     });
 }
 
+function clearTrackInfo()
+{
+    vex.dialog.confirm({
+        message: "Clear track and timeing?",
+        callback: function(data)
+        {
+            if (!data)
+                return;
+
+            g_startTime = Date.now();
+            g_trackLength = 0;
+            g_lineString.setCoordinates([]);
+
+            $("#spntime").text("0");
+            $("#spnspeed").text("0");
+            $("#spnlength").text("0");
+        }
+    });
+}
+
+function updateTimeAndSpeed()
+{
+    var dt = Date.now() - g_startTime;
+
+    // For seconds
+    dt /= 1000; 
+
+    // speed in meters per second
+    var speed = g_trackLength/dt;
+    // convert to km
+    speed /= 1000.0;
+    // and to per hour
+    speed *= 3600;
+
+    // Convert dt to minutes
+    dt /= 60;
+    
+    dt = Math.floor(dt*10)/10;
+    speed = Math.floor(speed*10)/10;
+
+    $("#spntime").text("" + dt);
+    $("#spnspeed").text("" + speed);
+    $("#spnlength").text("" + Math.round(g_trackLength));
+}
+
 function main()
 {
     $(".btnrecenter").hide();
@@ -1016,6 +1062,8 @@ function main()
                     setUIZoom(value);
             });
         }, 0);
+
+        setInterval(updateTimeAndSpeed, 1000);
     }
     g_db.onopenerror = function(evt)
     {

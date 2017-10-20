@@ -17,8 +17,8 @@ app was created, that uses a [Qt WebView](http://doc.qt.io/qt-5/qtwebview-index.
 component to display the web page in. It also runs a background service to keep track
 of the GPS locations in the background (while the app is running).
 
-The icon used originates from [openclipart](https://openclipart.org/detail/271903/home-map)
+The icon used originates from [openclipart](https://openclipart.org/detail/120607/treasure-map)
 
-You can either compile the package yourself, or download a pre-compiled version:
-[qosmcache-1.0.0.apk](https://dl.dropboxusercontent.com/s/omuag8xv6aps85b/qosmcache-1.0.0.apk)
+You can either compile the package yourself, or install it from the app store:
+[QOsmCache](https://play.google.com/store/apps/details?id=org.jori.qosmcache&hl=en)
 

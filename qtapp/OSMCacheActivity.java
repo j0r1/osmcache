@@ -1,7 +1,7 @@
-package org.qtproject.qosmcache;
+package org.jori.qosmcache;
 
 import org.qtproject.qt5.android.bindings.QtActivity;
-import org.qtproject.qosmcache.OSMCacheService;
+import org.jori.qosmcache.OSMCacheService;
 import android.content.Intent;
 import android.util.Log;
 import android.os.Bundle;
@@ -11,7 +11,7 @@ public class OSMCacheActivity extends QtActivity {
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         Log.i("Activity", "Starting service!");
-        Intent serviceIntent = new Intent(this, org.qtproject.qosmcache.OSMCacheService.class);
+        Intent serviceIntent = new Intent(this, org.jori.qosmcache.OSMCacheService.class);
         startService(serviceIntent);
     }
 }

@@ -1,4 +1,4 @@
-package org.qtproject.qosmcache;
+package org.jori.qosmcache;
 
 import android.content.Intent;
 import org.qtproject.qt5.android.bindings.QtService;

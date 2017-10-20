@@ -3,7 +3,7 @@
 ######################################################################
 
 TEMPLATE = app
-TARGET = qosmcache
+TARGET = QOsmCache
 INCLUDEPATH += .
 
 CONFIG += c++11
@@ -32,7 +32,7 @@ DISTFILES += \
 android {
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
-	ANDROID_JAVA_SOURCES.path = /src/org/qtproject/qosmcache
+        ANDROID_JAVA_SOURCES.path = /src/org/jori/qosmcache
 	ANDROID_JAVA_SOURCES.files = $$files($$PWD/*.java)
 	INSTALLS += ANDROID_JAVA_SOURCES
 }

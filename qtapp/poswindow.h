@@ -15,4 +15,6 @@ signals:
 	void setText(QVariant s);
 public slots:
 	void log(const QString &s);
+private:
+	void keyReleaseEvent(QKeyEvent *e);
 };

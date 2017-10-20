@@ -8,6 +8,7 @@
 #include <QQuickItem>
 #include <QApplication>
 #include <QDateTime>
+#include <QKeyEvent>
 #include <iostream>
 
 using namespace std;
@@ -56,4 +57,14 @@ void PosWindow::log(const QString &str0)
 	emit setText(str);
 
 	NetLog::log(str0);
+}
+
+void PosWindow::keyReleaseEvent(QKeyEvent *e)
+{
+	qDebug() << "Key released: " << e;
+	if (e->key() == Qt::Key_Back)
+	{
+		e->accept();
+		log("Ignoring close");
+	}
 }

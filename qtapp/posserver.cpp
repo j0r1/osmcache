@@ -104,7 +104,7 @@ void PosServer::onPosUpdate(const QGeoPositionInfo &update)
 		{
 			m_target = QGeoCoordinate(); // clear the target
 #ifdef __ANDROID__
-			QAndroidJniObject::callStaticMethod<void>("org/qtproject/qosmcache/OSMCacheService", "vibrate");
+			QAndroidJniObject::callStaticMethod<void>("org/jori/qosmcache/OSMCacheService", "vibrate");
 #endif
 			log("Within range of target!");
 		}

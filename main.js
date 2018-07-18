@@ -604,16 +604,23 @@ function getCoordsDialog(title, newLatLonCallback)
         
         var x = 0;
         var i = parts.length-1;
+	var sgn = 1.0;
         while (i >= 0)
         {
             x /= 60.0;
-            x += parseFloat(parts[i]);
+	    var tmp = parseFloat(parts[i]);
+	    if (tmp < 0 && i > 0)
+                return undefined;
+
+            sgn = (tmp > 0)?1.0:-1.0;
+	    tmp = Math.abs(tmp);
+            x += tmp;
             i--;
         }
         if (x != x)
             return undefined;
 
-        return x;
+        return x*sgn;
     }
 
     vex.dialog.open(
